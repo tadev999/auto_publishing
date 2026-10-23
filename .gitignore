@@ -1,0 +1,17 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.DS_Store
+
+data/*
+!data/.gitkeep
+
+assets/music/*
+!assets/music/.gitkeep
+
+remotion/node_modules/
+remotion/out/
+deploy/crontab.local

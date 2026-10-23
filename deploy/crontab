@@ -1,0 +1,16 @@
+# Endogenism auto-publishing — cron schedule (server timezone must be Asia/Ho_Chi_Minh).
+# __APP_DIR__ is replaced by deploy/setup_vps.sh → deploy/crontab.local
+SHELL=/bin/bash
+PATH=/usr/local/bin:/usr/bin:/bin
+
+# Plan the next 7 days and produce every video they need.
+0 2 * * *    cd __APP_DIR__ && .venv/bin/endo daily      >> data/logs/cron.log 2>&1
+
+# Post videos whose slot time has arrived.
+*/5 * * * *  cd __APP_DIR__ && .venv/bin/endo publish    >> data/logs/cron.log 2>&1
+
+# Collect 24h / 72h metrics and update learning weights.
+0 3 * * *    cd __APP_DIR__ && .venv/bin/endo analytics  >> data/logs/cron.log 2>&1
+
+# Weekly report to Telegram (Monday 08:00).
+0 8 * * 1    cd __APP_DIR__ && .venv/bin/endo report     >> data/logs/cron.log 2>&1

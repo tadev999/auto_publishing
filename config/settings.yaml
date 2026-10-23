@@ -1,0 +1,114 @@
+# Endogenism auto-publishing — runtime configuration.
+# Secrets live in .env; everything tunable lives here.
+
+timezone: Asia/Ho_Chi_Minh
+
+brand:
+  handle: "@noisinh"
+  default_hashtags: ["#noisinh", "#endogenism"]
+
+paths:
+  content_dir: endogenism
+  data_dir: data
+  music_dir: assets/music
+  remotion_dir: remotion
+
+models:
+  ingest: claude-sonnet-4-5
+  writer: claude-sonnet-4-5
+  critic: gpt-4o-mini
+  qa_vision: gpt-4o-mini
+
+voice:
+  # Vietnamese is supported by the v2.5 / v3 model families, not by multilingual_v2.
+  model_id: eleven_turbo_v2_5
+  language_code: vi
+  stability: 0.55
+  similarity_boost: 0.8
+  style: 0.0
+  speed: 0.95
+
+schedule:
+  queue_days: 7
+  slots:
+    - { time: "06:30", format: cau-hoi }
+    - { time: "11:30", format: goi-ten }
+    - { time: "17:00", format: ngo-nhan }
+    - { time: "20:00", format: thuc-hanh }
+    - { time: "22:00", format: doc-cham }
+  # Gradual ramp-up so a new account is not flagged as spam. Day 1 = first planned day.
+  ramp_up:
+    - { until_day: 14, formats: [goi-ten, thuc-hanh, doc-cham] }
+    - { until_day: 21, formats: [goi-ten, ngo-nhan, thuc-hanh, doc-cham] }
+  current_mach_ratio: 0.6
+  same_article_gap_days: 3
+  remake_after_days: 60
+
+formats:
+  cau-hoi:
+    label: "Câu hỏi mang theo"
+    duration: [15, 20]
+    visual: kinetic
+    music_mood: calm
+  goi-ten:
+    label: "Gọi tên"
+    duration: [30, 45]
+    visual: kinetic
+    music_mood: reflective
+  ngo-nhan:
+    label: "Ngộ nhận & Sự thật"
+    duration: [30, 40]
+    visual: kinetic
+    music_mood: reflective
+  thuc-hanh:
+    label: "Thực hành 60 giây"
+    duration: [40, 60]
+    visual: stock
+    music_mood: warm
+  doc-cham:
+    label: "Đọc chậm"
+    duration: [20, 30]
+    visual: stock
+    music_mood: calm
+
+critic:
+  max_rounds: 3
+  pass_total: 8.0
+  pass_philosophy: 9
+  weights:
+    hook: 0.25
+    philosophy: 0.25
+    single_idea: 0.15
+    voice: 0.15
+    ending: 0.10
+    readability: 0.10
+
+render:
+  fps: 30
+  width: 1080
+  height: 1920
+  tail_seconds: 1.8
+  music_volume: 0.12
+  loudness_lufs: -14
+  # QA accepts this much slack around the format's target duration (seconds).
+  duration_slack: [3, 8]
+
+publish:
+  platforms: [instagram, tiktok]
+  dry_run: true
+  instagram_graph_version: v23.0
+  # Instagram has no API flag for AI labels, so the disclosure goes into the caption.
+  instagram_ai_disclosure: "🎙️ Giọng đọc AI được tạo từ giọng thật của tác giả."
+  # "inbox" = upload as draft (works before TikTok audit); "direct" = publish publicly (needs audit).
+  tiktok_mode: inbox
+  tiktok_ai_label: true
+  max_attempts: 3
+
+analytics:
+  # Endogenism measures depth, not vanity: saves and shares weigh most.
+  score_weights:
+    saves: 4.0
+    shares: 3.0
+    comments: 2.0
+    likes: 0.5
+  remake_top_ratio: 0.2
