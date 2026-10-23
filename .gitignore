@@ -12,6 +12,12 @@ data/*
 assets/music/*
 !assets/music/.gitkeep
 
+node_modules/
+dist/
+
 remotion/node_modules/
 remotion/out/
-deploy/crontab.local
+
+desktop/node_modules/
+desktop/dist/
+desktop/release/

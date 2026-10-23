@@ -1,0 +1,136 @@
+import type { Desk, StudioAgent } from './types';
+
+export const INITIAL_AGENTS: StudioAgent[] = [
+  {
+    id: 'ingest',
+    name: 'Chi',
+    role: 'ingest',
+    title: 'Biên Tập Viên',
+    deskId: 'desk-ingest',
+    color: '#06b6d4',
+    status: 'idle',
+    statusIcon: '📚',
+    thought: 'Sẵn sàng phân tích 150 bài viết...',
+  },
+  {
+    id: 'planner',
+    name: 'Bình',
+    role: 'planner',
+    title: 'Trưởng Ban Kế Hoạch',
+    deskId: 'desk-planner',
+    color: '#3b82f6',
+    status: 'idle',
+    statusIcon: '🗓️',
+    thought: 'Xếp 5 khung giờ vàng mỗi ngày',
+  },
+  {
+    id: 'writer',
+    name: 'Vũ',
+    role: 'writer',
+    title: 'Biên Kịch (Claude)',
+    deskId: 'desk-writer',
+    color: '#10b981',
+    status: 'idle',
+    statusIcon: '✍️',
+    thought: 'Viết 3 hook phong cách khác nhau',
+  },
+  {
+    id: 'critic',
+    name: 'Triết',
+    role: 'critic',
+    title: 'Giám Khảo (GPT)',
+    deskId: 'desk-critic',
+    color: '#a855f7',
+    status: 'idle',
+    statusIcon: '🔍',
+    thought: 'Kiểm soát luật triết lý Endogenism',
+  },
+  {
+    id: 'voice',
+    name: 'Thanh',
+    role: 'voice',
+    title: 'Kỹ Sư Voice (ElevenLabs)',
+    deskId: 'desk-voice',
+    color: '#eab308',
+    status: 'idle',
+    statusIcon: '🎙️',
+    thought: 'Tạo giọng clone & căn nhịp từng từ',
+  },
+  {
+    id: 'visual',
+    name: 'Quang',
+    role: 'visual',
+    title: 'Đạo Diễn Visual (Pexels)',
+    deskId: 'desk-visual',
+    color: '#0ea5e9',
+    status: 'idle',
+    statusIcon: '🖼️',
+    thought: 'Tìm B-roll biểu cảm & nhạc nền',
+  },
+  {
+    id: 'render',
+    name: 'Dựng',
+    role: 'render',
+    title: 'Kỹ Thuật Render (Remotion)',
+    deskId: 'desk-render',
+    color: '#6366f1',
+    status: 'idle',
+    statusIcon: '🎬',
+    thought: 'Dựng video 9:16 kinetic text',
+  },
+  {
+    id: 'qa',
+    name: 'Minh',
+    role: 'qa',
+    title: 'Kiểm Định Chất Lượng',
+    deskId: 'desk-qa',
+    color: '#ec4899',
+    status: 'idle',
+    statusIcon: '📐',
+    thought: 'Kiểm tra safe-zone & thời lượng',
+  },
+  {
+    id: 'publisher',
+    name: 'Phát',
+    role: 'publisher',
+    title: 'Điều Phối Phát Hành',
+    deskId: 'desk-publisher',
+    color: '#22c55e',
+    status: 'idle',
+    statusIcon: '🚀',
+    thought: 'Phát hành Instagram Reels & TikTok',
+  },
+  {
+    id: 'analytics',
+    name: 'Số',
+    role: 'analytics',
+    title: 'Chuyên Viên Tăng Trưởng',
+    deskId: 'desk-analytics',
+    color: '#f59e0b',
+    status: 'idle',
+    statusIcon: '📊',
+    thought: 'Học hỏi từ lượt lưu & chia sẻ',
+  },
+];
+
+export const DESKS: Desk[] = [
+  // Editorial Zone (trái trên)
+  { id: 'desk-ingest', label: 'INGEST', role: 'ingest', tx: 2, ty: 2, color: 0x06b6d4 },
+  { id: 'desk-planner', label: 'PLANNER', role: 'planner', tx: 6, ty: 2, color: 0x3b82f6 },
+
+  // Writers & Critic Zone (giữa trên - đối mặt nhau)
+  { id: 'desk-writer', label: 'WRITER', role: 'writer', tx: 11, ty: 2, color: 0x10b981 },
+  { id: 'desk-critic', label: 'CRITIC', role: 'critic', tx: 15, ty: 2, color: 0xa855f7 },
+
+  // Sound & Visual Studio (phải trên)
+  { id: 'desk-voice', label: 'VOICE LAB', role: 'voice', tx: 20, ty: 2, color: 0xeab308 },
+  { id: 'desk-visual', label: 'VISUALS', role: 'visual', tx: 24, ty: 2, color: 0x0ea5e9 },
+
+  // Render Farm & QA (trái dưới)
+  { id: 'desk-render', label: 'RENDER FARM', role: 'render', tx: 2, ty: 10, color: 0x6366f1 },
+  { id: 'desk-qa', label: 'QA MONITOR', role: 'qa', tx: 6, ty: 10, color: 0xec4899 },
+
+  // Publishing & Growth (giữa dưới)
+  { id: 'desk-publisher', label: 'REELS / TIKTOK', role: 'publisher', tx: 11, ty: 10, color: 0x22c55e },
+  { id: 'desk-analytics', label: 'ANALYTICS', role: 'analytics', tx: 15, ty: 10, color: 0xf59e0b },
+];

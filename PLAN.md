@@ -15,7 +15,7 @@
 | **LLM chấm** | **GPT-4o-mini** (hoặc model mini tương đương) | Khác hãng với model viết, nên tránh tình trạng tự khen. Chi phí rất thấp. |
 | **Điều phối** | **Python thuần + SQLite (state machine) + cron** | Đơn giản, dễ debug, không phụ thuộc framework |
 | **Render video** | **Remotion** (React → MP4) | Template bằng code, phụ đề động đẹp. Miễn phí cho cá nhân hoặc team ≤ 3 người. |
-| **Máy chạy** | **VPS nhỏ** (Hetzner CX22: 2 vCPU / 4GB, khoảng 5 USD) | Chạy 24/7, đủ sức render Remotion |
+| **Ứng dụng chạy** | **Desktop macOS App** (Electron + PixiJS + React) | Trực quan hóa văn phòng ảo, chạy trực tiếp trên máy |
 | **Lưu trữ video** | **Cloudflare R2** | Miễn phí dưới 10GB, không tính phí băng thông tải xuống. Instagram API bắt buộc video có URL công khai. |
 | **Stock footage** | **Pexels API** | Miễn phí, được dùng thương mại |
 | **Nhạc nền** | **Thư viện tải sẵn 30 bài** từ Pixabay Music (ambient, piano, lo-fi chậm) | Miễn phí, được dùng thương mại, không rủi ro bản quyền |
@@ -33,9 +33,8 @@ Giả định: khoảng 150 video/tháng, mỗi script khoảng 500 ký tự (�
 | ElevenLabs Creator (100k credits, cần khoảng 75k ký tự/tháng + vài lần làm lại) | ~22 USD |
 | Claude Sonnet (viết 3 phiên bản + tối đa 3 vòng sửa, có bật prompt caching) | ~15–20 USD |
 | GPT-4o-mini (chấm điểm, QA nhìn khung hình) | ~2–3 USD |
-| VPS Hetzner CX22 | ~5 USD |
 | Cloudflare R2, Pexels, Pixabay Music, Remotion, API đăng bài | 0 USD |
-| **Tổng** | **~45–50 USD/tháng** |
+| **Tổng** | **~40–45 USD/tháng** |
 
 Chi phí một lần: Ingest 150 bài bằng Claude, khoảng 5–10 USD.
 
@@ -212,7 +211,7 @@ auto_publishing_agents/
 
 | Giai đoạn | Việc cần làm | Điều kiện hoàn thành |
 |---|---|---|
-| **0. Chuẩn bị** (bạn làm) | Tạo IG Business/Creator liên kết Facebook Page; đăng ký Meta App và TikTok Developer App, **nộp audit TikTok ngay**; thu âm khoảng 3 phút giọng đọc để clone trên ElevenLabs; tạo VPS và R2 | Có đủ API keys |
+| **0. Chuẩn bị** (bạn làm) | Tạo IG Business/Creator liên kết Facebook Page; đăng ký Meta App và TikTok Developer App, **nộp audit TikTok ngay**; thu âm khoảng 3 phút giọng đọc để clone trên ElevenLabs; tạo Cloudflare R2 | Có đủ API keys |
 | **1. Nội dung** | `ingest`, viết skills, `writer`, `critic` | 50 script mẫu đạt điểm ≥ 8, bạn đọc qua một lần để hiệu chỉnh giọng |
 | **2. Sản xuất** | `voice`, 5 template Remotion, `render`, `qa` | 35 video đầu tiên có trong hàng đợi |
 | **3. Xuất bản** | `publisher` cho IG trước, TikTok sau khi audit được duyệt | Đăng tự động đúng lịch |
@@ -233,4 +232,4 @@ auto_publishing_agents/
 | Chủ đề sức khỏe tâm thần nhạy cảm | Luật cấm lời khuyên y khoa; video nặng cảm xúc có kèm câu gợi ý tìm người hỗ trợ |
 | Yêu cầu gắn nhãn nội dung AI | Publisher luôn bật cờ AI-generated, vì giọng đọc là giọng clone |
 | Lỗi pipeline | Hàng đợi 7 ngày; mỗi bước tự thử lại 3 lần; thông báo qua Telegram khi một video bị `failed` |
-| Lộ API key | Lưu trong `.env` trên VPS, phân quyền 600, không commit |
+| Lộ API key | Lưu trong `.env` trên máy cá nhân, phân quyền 600, không commit |

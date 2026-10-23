@@ -41,41 +41,41 @@ Mọi hành động của agent được ghi vào bảng `events`, xem trực ti
 ├── endogenism/          # 150 bài gốc (nguồn nội dung)
 ├── skills/              # SKILL.md: luật triết lý, giọng văn, hook, retention, 5 format
 ├── config/settings.yaml # lịch đăng, model, rubric, ngưỡng điểm, dry-run…
-├── src/endo_agents/
+├── src/                 # 100% Pure Node.js / TypeScript
 │   ├── agents/          # ingest, planner, writer, critic, voice, visual, render, qa, upload, publisher, analytics
 │   ├── integrations/    # ElevenLabs, Pexels, R2, Instagram, TikTok, Telegram
-│   ├── captions.py      # timestamp ký tự → từ → khung phụ đề
-│   ├── pipeline.py      # state machine + retry + khoá tiến trình
-│   └── cli.py           # lệnh `endo`
+│   ├── captions.ts      # timestamp ký tự → từ → khung phụ đề
+│   ├── pipeline.ts      # state machine + retry + khoá tiến trình
+│   ├── cli.ts           # lệnh CLI `endo`
+│   └── demo_walkthrough.ts # demo chạy thử offline không cần API key
 ├── remotion/            # 5 template video (React) + font nhúng
 ├── assets/music/        # nhạc nền royalty-free (calm/ reflective/ warm/)
-├── deploy/              # script cài VPS + crontab
-└── tests/
+├── desktop/             # Ứng dụng Desktop macOS (Electron + PixiJS canvas + React)
+└── tests/               # Unit tests với Vitest
 ```
 
 ---
 
-## Cài đặt (máy local hoặc VPS)
+## Cài đặt (Máy cá nhân)
 
-Yêu cầu: **Python ≥ 3.11**, **Node.js ≥ 18**, **ffmpeg**.
+Yêu cầu: **Node.js ≥ 20**, **npm**.
 
 ```bash
-# 1. Python
-python3.12 -m venv .venv
-source .venv/bin/activate
-pip install -e ".[dev]"
+# 1. Cài đặt dependencies
+npm install
 
-# 2. Remotion
+# 2. Build TypeScript
+npm run build
+
+# 3. Remotion (dựng video)
 cd remotion && npm install && cd ..
 
-# 3. Bí mật
+# 4. Bí mật API
 cp .env.example .env      # điền API keys (xem mục "Lấy API keys")
 
-# 4. Nhạc nền (tuỳ chọn nhưng nên có)
-#    Tải ~30 bài từ Pixabay Music vào assets/music/{calm,reflective,warm}/*.mp3
-
 # 5. Kiểm tra
-endo doctor
+npm run endo doctor
+# hoặc: node dist/cli.js doctor
 ```
 
 Mặc định `publish.dry_run: true`. Hệ thống làm mọi bước **trừ đăng thật**, nên an toàn khi demo.
@@ -88,18 +88,19 @@ Mở 2 terminal:
 
 ```bash
 # Terminal 1: dòng sự kiện trực tiếp của mọi agent
-endo watch
+npm run endo watch
 ```
 
 ```bash
-# Terminal 2
-endo ingest --limit 2            # tách 2 bài đầu thành ý tưởng
-endo plan                        # lên lịch 7 ngày
-endo status                      # xem hàng đợi
-endo produce --limit 1           # 1 video: viết → chấm → giọng → dựng → QA
-endo show 1                      # script, 3 hook, điểm critic, dòng thời gian
-open data/media/00001/video.mp4  # xem video thành phẩm
-endo publish                     # dry-run: in ra caption sẽ đăng
+# Terminal 2: Chạy demo offline hoàn chỉnh không cần API key
+npm run endo demo
+
+# Hoặc từng bước:
+npm run endo ingest -- --limit 2     # tách 2 bài đầu thành ý tưởng
+npm run endo plan                    # lên lịch 7 ngày
+npm run endo status                  # xem hàng đợi
+npm run endo show 1                  # script, 3 hook, điểm critic, dòng thời gian
+open data/media/00001/video.mp4      # xem video thành phẩm
 ```
 
 Xem và chỉnh template mà không cần API key:
@@ -153,26 +154,24 @@ Trong `config/settings.yaml`, đổi `publish.dry_run: false`. Có thể bật t
 
 ---
 
-## Triển khai lên VPS (Ubuntu 22.04/24.04)
+## Ứng dụng Desktop macOS (Endogenism Studio)
+
+Ứng dụng trực quan hóa toàn bộ quy trình sản xuất video bằng văn phòng ảo 2D: mỗi agent là một nhân vật hoạt hình tương tác, trao đổi và làm việc trong thời gian thực.
 
 ```bash
-git clone <repo> ~/endo && cd ~/endo
-bash deploy/setup_vps.sh         # cài Python, Node, ffmpeg, Chrome deps, venv, npm, đặt múi giờ VN
-nano .env                        # điền keys (chmod 600 tự động)
-.venv/bin/endo doctor
-.venv/bin/endo ingest            # chạy một lần cho 150 bài
-.venv/bin/endo tiktok-auth
-crontab deploy/crontab.local     # bật lịch tự động (file do setup_vps.sh sinh ra)
+# Mở ứng dụng đã đóng gói
+open "desktop/release/mac-arm64/Endogenism Studio.app"
+
+# Hoặc cài đặt qua file DMG:
+open "desktop/release/Endogenism Studio-0.1.0-arm64.dmg"
 ```
 
-Lịch cron ([deploy/crontab](deploy/crontab)), theo giờ Việt Nam:
-
-| Giờ | Lệnh |
-|---|---|
-| 02:00 hằng ngày | `endo daily`: lên lịch và sản xuất cho đủ 7 ngày |
-| mỗi 5 phút | `endo publish` |
-| 03:00 hằng ngày | `endo analytics` |
-| 08:00 thứ Hai | `endo report` |
+Tính năng trên Desktop App:
+- **Canvas PixiJS tương tác**: 10 nhân vật Agent làm việc tại các bàn chuyên biệt, có animation bước đi, bong bóng thoại và đổi biểu cảm trạng thái.
+- **Tương tác Writer ↔ Critic**: Nhấn nút để xem hoạt cảnh Writer sang nộp kịch bản và Critic thẩm định chấm điểm trực tiếp.
+- **Hàng đợi xuất bản (Kanban)**: Xem 7 ngày lịch đăng, xem trước 3 hook, phân đoạn kịch bản và điểm rubric.
+- **Phát video MP4 trực tiếp**: Bấm vào video bất kỳ để xem thành phẩm.
+- **Quản lý cấu hình**: Chỉnh sửa API keys và kiểm tra kết nối (Doctor) ngay trên giao diện.
 
 ---
 
