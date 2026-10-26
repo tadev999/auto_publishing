@@ -99,7 +99,8 @@ CREATE TABLE IF NOT EXISTS events (
     video_id  INTEGER,
     agent     TEXT NOT NULL,
     level     TEXT NOT NULL,
-    message   TEXT NOT NULL
+    message   TEXT NOT NULL,
+    phase     TEXT
 );
 `;
 
@@ -128,6 +129,10 @@ export class DB {
     this.conn.pragma('journal_mode = WAL');
     this.conn.pragma('foreign_keys = ON');
     this.conn.exec(SCHEMA);
+    const eventColumns = this.conn.prepare('PRAGMA table_info(events)').all() as { name: string }[];
+    if (!eventColumns.some((column) => column.name === 'phase')) {
+      this.conn.exec('ALTER TABLE events ADD COLUMN phase TEXT');
+    }
 
     try {
       fs.chmodSync(dbPath, 0o600);
@@ -190,14 +195,15 @@ export class DB {
     this.run(`UPDATE videos SET ${cols} WHERE id = ?`, ...values, videoId);
   }
 
-  log(agent: string, message: string, videoId: number | null = null, level = 'info'): void {
+  log(agent: string, message: string, videoId: number | null = null, level = 'info', phase?: 'started' | 'finished' | 'failed'): void {
     this.run(
-      'INSERT INTO events(ts, video_id, agent, level, message) VALUES(?, ?, ?, ?, ?)',
+      'INSERT INTO events(ts, video_id, agent, level, message, phase) VALUES(?, ?, ?, ?, ?, ?)',
       utcnow(),
       videoId,
       agent,
       level,
-      message
+      message,
+      phase ?? null
     );
   }
 

@@ -3,7 +3,10 @@ import { Command } from 'commander';
 import fs from 'node:fs';
 import path from 'node:path';
 import readline from 'node:readline';
+import { createRequire } from 'node:module';
 import pc from 'picocolors';
+import { getAllAgentProfiles } from '@endo/core/skills';
+import { requireModelProvider } from '@endo/core/modelProvider';
 import {
   MissingSecret,
   SECRET_NAMES,
@@ -16,6 +19,7 @@ import {
   withLock,
   agents,
   resetDatabase,
+  runAutomation,
 } from '@endo/core';
 
 const analyticsAgent = agents.analytics;
@@ -102,6 +106,11 @@ program
       const useInstagram = s.publish.platforms.includes('instagram');
       const useTikTok = s.publish.platforms.includes('tiktok');
       const useYouTube = s.publish.platforms.includes('youtube');
+      const aiKeys = {
+        gemini: 'GEMINI_API_KEY', openai: 'OPENAI_API_KEY', anthropic: 'ANTHROPIC_API_KEY',
+      };
+      const requiredAIKeys = new Set(Object.values(getAllAgentProfiles(ctx))
+        .map((profile) => aiKeys[requireModelProvider(profile.model)]));
 
       console.log(pc.bold('1. API Keys & Secrets:'));
       for (const name of SECRET_NAMES) {
@@ -110,12 +119,10 @@ program
         let status = '';
         if (ok) {
           status = pc.green('✓');
-        } else if ((name === 'ANTHROPIC_API_KEY' || name === 'OPENAI_API_KEY') && s.env['GEMINI_API_KEY']) {
-          status = pc.dim('– (dùng Gemini)');
-        } else if (name === 'GEMINI_API_KEY' && s.env['ANTHROPIC_API_KEY'] && s.env['OPENAI_API_KEY']) {
-          status = pc.dim('– (dùng Claude/GPT)');
         } else if (name === 'GEMINI_API_KEY' || name === 'ANTHROPIC_API_KEY' || name === 'OPENAI_API_KEY') {
-          status = pc.yellow('✗ cần GEMINI_API_KEY (hoặc Claude+GPT)');
+          status = requiredAIKeys.has(name)
+            ? pc.yellow('✗ cần cho model đã chọn trong hồ sơ agent')
+            : pc.dim('– (không có agent chọn nhà cung cấp này)');
         } else if (name === 'PEXELS_API_KEY' && s.env['PIXABAY_API_KEY']) {
           status = pc.dim('– (dùng Pixabay)');
         } else if (name === 'PIXABAY_API_KEY' && s.env['PEXELS_API_KEY']) {
@@ -154,10 +161,16 @@ program
       }
 
       console.log(pc.bold('\n3. Dự án & Nội dung:'));
-      const remotionOk = fs.existsSync(path.join(s.path('remotion_dir'), 'node_modules'));
+      let remotionOk = false;
+      try {
+        createRequire(path.join(s.path('remotion_dir'), 'package.json')).resolve('@remotion/cli');
+        remotionOk = true;
+      } catch (error) {
+        if (!(error instanceof Error) || !('code' in error) || error.code !== 'MODULE_NOT_FOUND') throw error;
+      }
       console.log(
-        `  ${'remotion/node_modules'.padEnd(25)} ${
-          remotionOk ? pc.green('✓') : pc.red('✗ chạy npm install trong remotion/')
+        `  ${'@endo/remotion dependencies'.padEnd(25)} ${
+          remotionOk ? pc.green('✓') : pc.red('✗ chạy npm install --include=dev từ gốc monorepo')
         }`
       );
 
@@ -216,7 +229,7 @@ program
   .action(() =>
     handleAction(async () => {
       const ctx = makeCtx();
-      plannerAgent.run(ctx);
+      await plannerAgent.runWithProfile(ctx);
     })
   );
 
@@ -237,6 +250,14 @@ program
   );
 
 // 5. DAILY
+program.command('auto-cycle')
+  .description('Chạy một chu kỳ tự vận hành theo cấu hình lưu trên server')
+  .action(() => handleAction(async () => {
+    const ctx = makeCtx();
+    try { await runAutomation(ctx); }
+    finally { ctx.db.close(); }
+  }));
+
 program
   .command('daily')
   .description('Tự động chạy định kỳ: Lên lịch và sản xuất')
@@ -245,7 +266,7 @@ program
       const ctx = makeCtx();
       const llm = new LLM(ctx.settings);
       const { acquired } = await withLock(ctx, 'daily', async () => {
-        plannerAgent.run(ctx);
+        await plannerAgent.runWithProfile(ctx);
         const stats = await produce(ctx, llm);
         console.log('Hoàn tất daily:', stats);
       });

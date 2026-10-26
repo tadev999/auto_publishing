@@ -3,6 +3,7 @@ import { GoogleGenAI } from '@google/genai';
 import OpenAI from 'openai';
 import { z } from 'zod';
 import type { Settings } from './config.js';
+import { requireModelProvider } from './modelProvider.js';
 
 function zodToJsonSchema(schema: z.ZodTypeAny): any {
   // Simple Zod to JSON Schema converter for our schemas
@@ -66,6 +67,15 @@ export class LLM {
 
   constructor(public readonly settings: Settings) {}
 
+  async structured<T>(opts: {
+    model: string; system: string; user: string; schema: z.ZodType<T, any, any>;
+    temperature?: number; maxTokens?: number; images?: Buffer[];
+  }): Promise<T> {
+    const provider = requireModelProvider(opts.model);
+    if (provider === 'gemini') return this.geminiRun(opts);
+    return provider === 'anthropic' ? this.claude(opts) : this.gpt(opts);
+  }
+
   get gemini(): GoogleGenAI {
     if (!this._gemini) {
       this._gemini = new GoogleGenAI({
@@ -96,7 +106,7 @@ export class LLM {
   }
 
   async geminiRun<T>(opts: {
-    model?: string;
+    model: string;
     system: string | string[];
     user: string;
     schema: z.ZodType<T, any, any>;
@@ -104,6 +114,7 @@ export class LLM {
     temperature?: number;
     maxTokens?: number;
   }): Promise<T> {
+    if (requireModelProvider(opts.model) !== 'gemini') throw new Error('Gemini yêu cầu model ID bắt đầu bằng gemini-.');
     const systemArr = Array.isArray(opts.system) ? opts.system : [opts.system];
     const systemInstruction = systemArr.join('\n\n');
     const jsonSchema = zodToJsonSchema(opts.schema);
@@ -120,50 +131,19 @@ export class LLM {
       }
     }
 
-    const candidateModels = Array.from(
-      new Set(
-        [
-          opts.model,
-          'gemini-3.6-flash',
-          'gemini-3.5-flash',
-          'gemini-3-flash-preview',
-        ].filter(Boolean) as string[]
-      )
-    );
-
-    let lastError: any = null;
-    for (const modelName of candidateModels) {
-      for (let attempt = 0; attempt < 2; attempt++) {
-        try {
-          const generatePromise = this.gemini.models.generateContent({
-            model: modelName,
-            contents: parts,
-            config: {
-              systemInstruction: systemInstruction || undefined,
-              temperature: opts.temperature ?? 0.7,
-              maxOutputTokens: opts.maxTokens,
-              responseMimeType: 'application/json',
-              responseSchema: jsonSchema,
-            },
-          });
-
-          const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error(`Model ${modelName} timed out after 12s`)), 12000)
-          );
-
-          const resp = (await Promise.race([generatePromise, timeoutPromise])) as any;
-
-          const raw = resp.text || '{}';
-          const parsed = JSON.parse(raw);
-          return opts.schema.parse(parsed);
-        } catch (err: any) {
-          lastError = err;
-          // If model timed out or busy, break inner loop and try next candidate model
-          break;
-        }
-      }
-    }
-    throw lastError;
+    const resp = await this.gemini.models.generateContent({
+      model: opts.model,
+      contents: parts,
+      config: {
+        httpOptions: { timeout: 12000 },
+        systemInstruction: systemInstruction || undefined,
+        temperature: opts.temperature ?? 0.7,
+        maxOutputTokens: opts.maxTokens,
+        responseMimeType: 'application/json',
+        responseSchema: jsonSchema,
+      },
+    });
+    return opts.schema.parse(JSON.parse(resp.text || '{}'));
   }
 
   async claude<T>(opts: {
@@ -173,10 +153,10 @@ export class LLM {
     schema: z.ZodType<T, any, any>;
     maxTokens?: number;
     temperature?: number;
+    images?: Buffer[];
   }): Promise<T> {
-    if (this.settings.secret('GEMINI_API_KEY', false) || opts.model.includes('gemini')) {
-      return this.geminiRun<T>(opts);
-    }
+    if (requireModelProvider(opts.model) !== 'anthropic') throw new Error('Claude yêu cầu model ID bắt đầu bằng claude-.');
+    const client = this.anthropic;
 
     const systemArr = Array.isArray(opts.system) ? opts.system : [opts.system];
     const systemBlocks: Anthropic.TextBlockParam[] = systemArr.map(
@@ -199,14 +179,20 @@ export class LLM {
     let lastError: any = null;
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
-        const resp = await this.anthropic.messages.create({
+        const resp = await client.messages.create({
           model: opts.model,
           max_tokens: opts.maxTokens || 4000,
-          temperature: opts.temperature ?? 0.8,
+          ...(/claude-(?:opus|sonnet|haiku|fable)-(?:[5-9]|4-[6-9])/.test(opts.model)
+            ? {} : { temperature: opts.temperature ?? 0.8 }),
           system: systemBlocks as any,
           tools: [tool],
           tool_choice: { type: 'tool', name: 'submit' },
-          messages: [{ role: 'user', content: opts.user }],
+          messages: [{ role: 'user', content: [
+            { type: 'text', text: opts.user },
+            ...(opts.images || []).map((image): Anthropic.ImageBlockParam => ({
+              type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: image.toString('base64') },
+            })),
+          ] }],
         });
 
         const block = resp.content.find((b) => b.type === 'tool_use') as Anthropic.ToolUseBlock | undefined;
@@ -227,10 +213,10 @@ export class LLM {
     schema: z.ZodType<T, any, any>;
     images?: Buffer[];
     temperature?: number;
+    maxTokens?: number;
   }): Promise<T> {
-    if (this.settings.secret('GEMINI_API_KEY', false) || opts.model.includes('gemini')) {
-      return this.geminiRun<T>(opts);
-    }
+    if (requireModelProvider(opts.model) !== 'openai') throw new Error('GPT yêu cầu model ID bắt đầu bằng gpt-.');
+    const client = this.openai;
     const jsonSchema = zodToJsonSchema(opts.schema);
     const systemMsg = `${opts.system}\n\nRespond ONLY with a JSON object that strictly matches this JSON schema:\n${JSON.stringify(
       jsonSchema
@@ -250,9 +236,11 @@ export class LLM {
     let lastError: any = null;
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
-        const resp = await this.openai.chat.completions.create({
+        const resp = await client.chat.completions.create({
           model: opts.model,
-          temperature: opts.temperature ?? 0.2,
+          ...(/^gpt-5/.test(opts.model)
+            ? { max_completion_tokens: opts.maxTokens }
+            : { max_tokens: opts.maxTokens, temperature: opts.temperature ?? 0.2 }),
           response_format: { type: 'json_object' },
           messages: [
             { role: 'system', content: systemMsg },

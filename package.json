@@ -1,7 +1,7 @@
 {
   "name": "auto-publishing-monorepo",
   "version": "0.1.0",
-  "description": "AI agents that turn Endogenism articles into short videos and publish them to Instagram Reels & TikTok (Pure Node.js Monorepo)",
+  "description": "Web dashboard and AI agents for Endogenism video production and publishing",
   "private": true,
   "workspaces": [
     "packages/*",
@@ -11,13 +11,14 @@
     "endo": "./apps/cli/dist/cli.js"
   },
   "scripts": {
-    "build": "npm run build --workspace=@endo/core && npm run build --workspace=@endo/cli && npm run build --workspace=@endo/desktop",
+    "dev": "npm run dev --workspace=@endo/web",
+    "predev": "npm run build --workspace=@endo/core && npm run build --workspace=@endo/cli",
+    "start": "npm run start --workspace=@endo/web",
+    "build": "npm run build --workspace=@endo/core && npm run build --workspace=@endo/cli && npm run build --workspace=@endo/web",
     "endo": "npm run start --workspace=@endo/cli --",
-    "test": "npm run test --workspace=@endo/core",
-    "desktop:dev": "npm run dev --workspace=@endo/desktop",
-    "desktop:build": "npm run build --workspace=@endo/desktop",
-    "desktop:start": "npm run start --workspace=@endo/desktop",
-    "desktop:dist": "npm run dist --workspace=@endo/desktop",
+    "test": "npm run test --workspace=@endo/core && npm run test --workspace=@endo/web",
+    "web:build": "npm run build --workspace=@endo/web",
+    "web:test": "npm run test --workspace=@endo/web",
     "remotion:studio": "npm run studio --workspace=@endo/remotion"
   },
   "devDependencies": {

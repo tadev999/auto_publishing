@@ -11,6 +11,7 @@ import { Ctx } from './context.js';
 import { VideoStatus } from './db.js';
 import { notify } from './integrations/telegram.js';
 import { LLM } from './llm.js';
+import { assertUniqueScript } from './ideaIdentity.js';
 
 export type StageHandler = (ctx: Ctx, llm: LLM, video: any) => Promise<void>;
 
@@ -77,7 +78,6 @@ async function failStage(ctx: Ctx, videoId: number, agent: string, exc: any): Pr
     attempts,
     error: `${agent}: ${msg}`,
   });
-  ctx.db.run("UPDATE ideas SET status = 'available' WHERE id = ? AND status = 'used'", video.idea_id);
   ctx.event(agent, `THẤT BẠI sau ${attempts} lần: ${msg}`, {
     videoId,
     level: 'error',
@@ -88,7 +88,7 @@ async function failStage(ctx: Ctx, videoId: number, agent: string, exc: any): Pr
 export async function produce(
   ctx: Ctx,
   llm: LLM,
-  options: { limit?: number; videoIds?: number[] } = {}
+  options: { limit?: number; videoIds?: number[]; preventDuplicates?: boolean } = {}
 ): Promise<Record<string, number>> {
   const { limit, videoIds } = options;
   const activeStatuses = STAGES.map((s) => s.status);
@@ -130,8 +130,14 @@ export async function produce(
         }
 
         try {
+          ctx.event(stage.name, `Bắt đầu công đoạn ${stage.name}`, { videoId: vid, phase: 'started' });
+          if (options.preventDuplicates && stage.name === 'voice') assertUniqueScript(ctx, video);
           await stage.handler(ctx, llm, video);
+          ctx.event(stage.name, `Kết thúc công đoạn ${stage.name}`, { videoId: vid, phase: 'finished' });
         } catch (exc: any) {
+          ctx.event(stage.name, `Công đoạn ${stage.name} gặp lỗi: ${exc.message || String(exc)}`, {
+            videoId: vid, level: 'error', phase: 'failed',
+          });
           if (exc instanceof MissingSecret) {
             throw exc;
           }

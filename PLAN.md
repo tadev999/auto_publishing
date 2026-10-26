@@ -1,5 +1,7 @@
 # Kế hoạch: Hệ thống AI Agents xuất bản video Endogenism lên Reels & TikTok
 
+> Tài liệu định hướng ban đầu; cấu trúc và hướng dẫn vận hành hiện tại xem [README.md](README.md). Bản triển khai dùng Node.js/TypeScript và web app trong `apps/web`, không còn Electron/Python. Các giả định model, chi phí và số video trong kế hoạch không phải cam kết runtime.
+
 > Mục tiêu: biến 150 bài viết trong `endogenism/` thành **5 video ngắn/ngày** trên Instagram Reels và TikTok.
 > Hệ thống chạy hoàn toàn tự động, chất lượng nội dung cao, đúng triết lý Nội Sinh, chi phí khoảng **50 USD/tháng**.
 
@@ -15,7 +17,7 @@
 | **LLM chấm** | **GPT-4o-mini** (hoặc model mini tương đương) | Khác hãng với model viết, nên tránh tình trạng tự khen. Chi phí rất thấp. |
 | **Điều phối** | **Python thuần + SQLite (state machine) + cron** | Đơn giản, dễ debug, không phụ thuộc framework |
 | **Render video** | **Remotion** (React → MP4) | Template bằng code, phụ đề động đẹp. Miễn phí cho cá nhân hoặc team ≤ 3 người. |
-| **Ứng dụng chạy** | **Desktop macOS App** (Electron + PixiJS + React) | Trực quan hóa văn phòng ảo, chạy trực tiếp trên máy |
+| **Ứng dụng chạy** | **Web App** (Express + React + PixiJS) | Dashboard trình duyệt, tác vụ chạy trên server; phát triển local hoặc triển khai VPS |
 | **Lưu trữ video** | **Cloudflare R2** | Miễn phí dưới 10GB, không tính phí băng thông tải xuống. Instagram API bắt buộc video có URL công khai. |
 | **Stock footage** | **Pexels API** | Miễn phí, được dùng thương mại |
 | **Nhạc nền** | **Thư viện tải sẵn 30 bài** từ Pixabay Music (ambient, piano, lo-fi chậm) | Miễn phí, được dùng thương mại, không rủi ro bản quyền |

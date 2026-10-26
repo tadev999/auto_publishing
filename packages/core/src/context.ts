@@ -4,6 +4,7 @@ import { DB } from './db.js';
 export interface EventOptions {
   videoId?: number | null;
   level?: string;
+  phase?: 'started' | 'finished' | 'failed';
 }
 
 export interface Ctx {
@@ -29,15 +30,17 @@ export function makeCtx(customSettings?: Settings): Ctx {
   ) => {
     let vid: number | null = null;
     let lvl = level;
+    let phase: EventOptions['phase'];
 
     if (typeof videoIdOrOpts === 'number' || videoIdOrOpts === null) {
       vid = videoIdOrOpts ?? null;
     } else if (typeof videoIdOrOpts === 'object' && videoIdOrOpts !== undefined) {
       vid = videoIdOrOpts.videoId ?? null;
       lvl = videoIdOrOpts.level ?? level;
+      phase = videoIdOrOpts.phase;
     }
 
-    db.log(agent, message, vid, lvl);
+    db.log(agent, message, vid, lvl, phase);
   };
 
   return { settings, db, event };

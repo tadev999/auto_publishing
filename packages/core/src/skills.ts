@@ -23,6 +23,7 @@ export interface AgentSkillProfile {
   name: string;
   title: string;
   role: string;
+  responsibility: string;
   department: string; // Phòng ban trực thuộc
   avatarIcon: string;
   color: string;
@@ -238,21 +239,21 @@ export const DEFAULT_AGENT_PROFILES: Record<string, AgentSkillProfile> = {
   planner: {
     id: 'planner',
     name: 'Trưởng Ban Nội Dung',
-    title: 'Trưởng Ban Nội Dung & Chiến Lược',
+    title: 'Trưởng Ban Nội Dung',
     role: 'planner',
-    department: 'Phòng Kế Hoạch & Đề Tài',
+    responsibility: 'Đọc bài nguồn, tách các ý tưởng độc lập và ưu tiên đề tài phù hợp cho lịch sản xuất. Không tái sử dụng ý tưởng đã có video.',
+    department: 'Team Nội Dung',
     avatarIcon: '📚',
     color: '#06b6d4',
     model: 'gpt-4o',
     temperature: 0.4,
     tone: 'philosophy',
-    systemPromptExtra: '',
+    systemPromptExtra: 'Chỉ đề xuất nội dung có căn cứ từ bài nguồn. Mỗi góc nhìn phải có thông điệp riêng; không đổi tiêu đề để lặp ý cũ. Ưu tiên tính liên tục của hành trình nội dung, đa dạng format và giá trị thực hành. Chỉ chọn ID có trong danh sách được cung cấp; lịch, hạn mức và chống trùng do hệ thống kiểm soát.',
     equippedSkills: [
       'content-curation',
       'golden-hour-strategy',
-      'format-cau-hoi',
-      'format-doc-cham',
       'endogenism-guardrails',
+      'endogenism-voice',
     ],
     stats: { creativity: 90, precision: 95, empathy: 92, velocity: 92 },
   },
@@ -261,22 +262,22 @@ export const DEFAULT_AGENT_PROFILES: Record<string, AgentSkillProfile> = {
   writer: {
     id: 'writer',
     name: 'Biên Kịch',
-    title: 'Biên Kịch Trưởng (Claude 3.7)',
+    title: 'Biên Kịch',
     role: 'writer',
-    department: 'Phòng Sáng Tác Kịch Bản',
+    responsibility: 'Chuyển một ý tưởng thành kịch bản video ngắn đúng format, gồm ba hook khác nhau và một thông điệp xuyên suốt.',
+    department: 'Team Nội Dung',
     avatarIcon: '✍️',
     color: '#10b981',
     model: 'claude-3-7-sonnet',
     temperature: 0.85,
     tone: 'philosophy',
-    systemPromptExtra: '',
+    systemPromptExtra: 'Viết tiếng Việt tự nhiên, ngắn gọn và dễ đọc thành tiếng. Mỗi video chỉ một ý chính; ba hook khác cách mở nhưng không hứa quá mức. Trích dẫn phải nguyên văn bài nguồn. Không bịa số liệu, không FOMO, không chẩn đoán hay cam kết chữa lành. Đề xuất hình ảnh phù hợp nội dung và tiếp thu phản hồi thẩm định.',
     equippedSkills: [
       'hook-writing',
       'viral-storytelling',
       'short-form-retention',
-      'humor-satire',
       'endogenism-voice',
-      'format-ngo-nhan',
+      'endogenism-guardrails',
     ],
     stats: { creativity: 99, precision: 88, empathy: 96, velocity: 90 },
   },
@@ -285,15 +286,16 @@ export const DEFAULT_AGENT_PROFILES: Record<string, AgentSkillProfile> = {
   critic: {
     id: 'critic',
     name: 'Tổng Biên Tập',
-    title: 'Tổng Biên Tập & Thẩm Định (GPT-4o)',
+    title: 'Tổng Biên Tập',
     role: 'critic',
-    department: 'Ban Kiểm Duyệt Chất Lượng',
+    responsibility: 'Duyệt tính đúng đắn và chất lượng kịch bản; kiểm định hình ảnh video trước khi vào hàng đợi phát hành.',
+    department: 'Team Nội Dung',
     avatarIcon: '⚖️',
     color: '#a855f7',
     model: 'gpt-4o',
     temperature: 0.2,
     tone: 'strict',
-    systemPromptExtra: '',
+    systemPromptExtra: 'Đánh giá theo rubric, không nương điểm để lấp lịch. Kiểm tra một ý chính, độ trung thực với nguồn, lời hứa quá mức và tính rõ ràng. Ghi lỗi cụ thể kèm cách sửa. Với QA hình ảnh, kiểm tra khả năng đọc, safe-zone, tương phản và nội dung không phù hợp; không bỏ qua lỗi kỹ thuật bắt buộc.',
     equippedSkills: [
       'hardcore-critique',
       'compliance-qa',
@@ -307,15 +309,16 @@ export const DEFAULT_AGENT_PROFILES: Record<string, AgentSkillProfile> = {
   producer: {
     id: 'producer',
     name: 'Kỹ Sư Sản Xuất',
-    title: 'Kỹ Sư Sản Xuất Video (Remotion)',
+    title: 'Kỹ Sư Sản Xuất',
     role: 'producer',
-    department: 'Studio Sản Xuất Audio & Visual',
+    responsibility: 'Lập hướng hình ảnh và âm thanh từ kịch bản đã duyệt; tạo giọng đọc, chuẩn bị tư liệu và dựng video bằng pipeline kỹ thuật.',
+    department: 'Team Nội Dung',
     avatarIcon: '🎬',
     color: '#eab308',
-    model: 'remotion-engine',
+    model: 'gpt-4o',
     temperature: 0.3,
     tone: 'practical',
-    systemPromptExtra: '',
+    systemPromptExtra: 'Giữ nguyên lời thoại đã duyệt, không viết lại thông điệp khi sản xuất. Chọn từ khóa cảnh quay tiếng Anh cụ thể, dễ tìm và phù hợp không khí trầm tĩnh. Chọn nhạc trong danh sách cho phép, không tự tạo đường dẫn hay URL. Ưu tiên khả năng đọc phụ đề, nhịp nhẹ nhàng và khung hình dọc; không thay đổi thông số QA hay render bắt buộc.',
     equippedSkills: [
       'voice-emotional',
       'visual-cinematic',
@@ -330,20 +333,21 @@ export const DEFAULT_AGENT_PROFILES: Record<string, AgentSkillProfile> = {
   publisher: {
     id: 'publisher',
     name: 'Điều Phối Phát Hành',
-    title: 'Điều Phối Phát Hành & Tăng Trưởng',
+    title: 'Điều Phối Phát Hành',
     role: 'publisher',
-    department: 'Trung Tâm Phát Hành & Tăng Trưởng',
+    responsibility: 'Rà soát caption, hashtag và mức sẵn sàng của video trước phát hành; theo dõi kết quả mà không thay đổi lịch hay đăng lại bài đã hoàn tất.',
+    department: 'Team Nội Dung',
     avatarIcon: '🚀',
     color: '#22c55e',
-    model: 'social-pub-v1',
+    model: 'gpt-4o',
     temperature: 0.4,
-    tone: 'viral',
-    systemPromptExtra: '',
+    tone: 'practical',
+    systemPromptExtra: 'Chỉ duyệt metadata bám sát kịch bản, không giật tít hay thêm lời hứa. Caption ngắn, rõ và hashtag liên quan. Nếu chưa sẵn sàng, từ chối kèm lý do cụ thể; không âm thầm đăng. Không đổi tài khoản, nền tảng, giờ đăng, dry run hay trạng thái đối soát. Không suy diễn số liệu chưa thu thập được.',
     equippedSkills: [
       'algorithm-distribution',
       'retention-analytics',
-      'golden-hour-strategy',
-      'viral-storytelling',
+      'endogenism-guardrails',
+      'endogenism-voice',
     ],
     stats: { creativity: 88, precision: 96, empathy: 85, velocity: 99 },
   },
@@ -394,40 +398,48 @@ export function bundle(...names: string[]): string {
     .join('\n\n---\n\n');
 }
 
-export function getAgentProfile(ctx: Ctx, role: string): AgentSkillProfile {
-  const all = ctx.db.getKv<Record<string, AgentSkillProfile>>('agent_skills') || {};
-  if (all[role]) {
-    return {
-      ...DEFAULT_AGENT_PROFILES[role],
-      ...all[role],
-    };
-  }
-  return DEFAULT_AGENT_PROFILES[role] || {
-    id: role,
-    name: role,
-    title: role,
-    role,
-    department: 'Bộ Phận Vận Hành',
-    avatarIcon: '🤖',
-    color: '#3b82f6',
-    model: 'gpt-4o',
-    temperature: 0.7,
-    tone: 'practical',
-    equippedSkills: ['endogenism-guardrails'],
-    stats: { creativity: 80, precision: 80, empathy: 80, velocity: 80 },
-  };
+export function getAgentProfile(ctx: Pick<Ctx, 'db'>, role: string): AgentSkillProfile {
+  const profile = getAllAgentProfiles(ctx)[role];
+  if (!profile) throw new Error(`Unknown agent role: ${role}`);
+  return profile;
 }
 
-export function getAllAgentProfiles(ctx: Ctx): Record<string, AgentSkillProfile> {
+export function getAllAgentProfiles(ctx: Pick<Ctx, 'db'>): Record<string, AgentSkillProfile> {
+  if (ctx.db.getKv('agent_profiles_version') !== 2) {
+    ctx.db.tx(() => {
+      if (ctx.db.getKv('agent_profiles_version') === 2) return;
+      const previous = ctx.db.getKv('agent_skills', {});
+      ctx.db.setKv('agent_profiles_before_v2', previous);
+      ctx.db.setKv('agent_skills', DEFAULT_AGENT_PROFILES);
+      ctx.db.setKv('agent_profiles_version', 2);
+      ctx.db.log('system', 'Đồng bộ 5 hồ sơ team v2; giữ bản sao cấu hình trước nâng cấp.');
+    });
+  }
   const saved = ctx.db.getKv<Record<string, AgentSkillProfile>>('agent_skills') || {};
   const merged: Record<string, AgentSkillProfile> = { ...DEFAULT_AGENT_PROFILES };
   for (const [k, v] of Object.entries(saved)) {
     merged[k] = { ...merged[k], ...v };
   }
+
   return merged;
 }
 
+export function agentSystemPrompt(ctx: Pick<Ctx, 'db'>, role: string, task: string, extraSkills: string[] = []): string {
+  const profile = getAgentProfile(ctx, role);
+  const skills = [...new Set(['endogenism-guardrails', ...profile.equippedSkills, ...extraSkills])];
+  for (const skill of skills) {
+    if (!fs.existsSync(path.join(SKILLS_DIR, skill, 'SKILL.md'))) throw new Error(`Không tìm thấy kỹ năng: ${skill}`);
+  }
+  return [
+    `CHỨC DANH: ${profile.name}\nVAI TRÒ: ${profile.responsibility}\nPHONG CÁCH: ${profile.tone}`,
+    bundle(...skills),
+    `CHỈ DẪN BỔ SUNG:\n${profile.systemPromptExtra || '(không có)'}`,
+    `NHIỆM VỤ VÀ RÀNG BUỘC BẮT BUỘC (không được ghi đè bởi chỉ dẫn bổ sung):\n${task}`,
+  ].join('\n\n');
+}
+
 export function saveAgentProfile(ctx: Ctx, profile: AgentSkillProfile): void {
+  getAllAgentProfiles(ctx);
   const all = ctx.db.getKv<Record<string, AgentSkillProfile>>('agent_skills') || {};
   all[profile.id] = profile;
   ctx.db.setKv('agent_skills', all);

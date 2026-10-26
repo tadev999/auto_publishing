@@ -1,6 +1,11 @@
 import { Settings } from '../config.js';
 import { Ctx } from '../context.js';
 import { VideoStatus, utcnow } from '../db.js';
+import { sameIdea, type IdeaIdentity } from '../ideaIdentity.js';
+import { z } from 'zod';
+import { agentTask } from '../agentTask.js';
+import { getAgentProfile } from '../skills.js';
+import { createHash } from 'node:crypto';
 
 export const AGENT = 'planner';
 
@@ -50,20 +55,26 @@ function createRng(seedStr: string): () => number {
 export function pickIdea(
   ctx: Ctx,
   fmt: string,
-  local: Date
+  local: Date,
+  priority: number[] = [],
 ): { idea: any; remakeOf: number | null } | null {
   const db = ctx.db;
   const recent = recentArticles(ctx, local);
 
   const allAvailable = db.all<any>(
     `SELECT i.*, a.mach_index, a.number FROM ideas i JOIN articles a ON a.id = i.article_id
-     WHERE i.status = 'available' AND EXISTS (SELECT 1 FROM json_each(i.formats) WHERE value = ?)`,
+     WHERE i.status = 'available' AND NOT EXISTS (SELECT 1 FROM videos v WHERE v.idea_id = i.id)
+       AND EXISTS (SELECT 1 FROM json_each(i.formats) WHERE value = ?)`,
     fmt
   );
 
-  const rows = allAvailable.filter((r) => !recent.has(r.article_id));
+  const used = db.all<IdeaIdentity>(`SELECT DISTINCT i.article_id, i.angle, i.insight
+    FROM ideas i JOIN videos v ON v.idea_id = i.id`);
+  const rows = allAvailable.filter((r) => !recent.has(r.article_id) && !used.some((idea) => sameIdea(r, idea)));
 
   if (rows.length > 0) {
+    const preferred = priority.map((id) => rows.find((row) => row.id === id)).find(Boolean);
+    if (preferred) return { idea: preferred, remakeOf: null };
     const minRow = db.one<any>(
       `SELECT MIN(a.mach_index) AS m FROM ideas i JOIN articles a ON a.id = i.article_id
        WHERE i.status = 'available'`
@@ -92,38 +103,6 @@ export function pickIdea(
     return { idea: choice, remakeOf: null };
   }
 
-  return pickRemake(ctx, fmt, local, recent);
-}
-
-function pickRemake(
-  ctx: Ctx,
-  fmt: string,
-  local: Date,
-  recent: Set<string>
-): { idea: any; remakeOf: number } | null {
-  const cfg = ctx.settings;
-  const cutoffMs = cfg.schedule.remake_after_days * 24 * 3600 * 1000;
-  const cutoff = isoUtc(new Date(local.getTime() - cutoffMs));
-
-  const cands = ctx.db.all<any>(
-    `SELECT v.id, v.idea_id, v.article_id, AVG(m.score) AS score
-     FROM videos v JOIN publications p ON p.video_id = v.id JOIN metrics m ON m.publication_id = p.id
-     WHERE v.format = ? AND v.status IN ('published', 'measured') AND v.slot_at < ?
-       AND v.remake_of IS NULL AND NOT EXISTS (SELECT 1 FROM videos r WHERE r.remake_of = v.id)
-     GROUP BY v.id ORDER BY score DESC`,
-    fmt,
-    cutoff
-  );
-
-  const topCount = Math.max(1, Math.ceil(cands.length * cfg.analytics.remake_top_ratio));
-  const top = cands.slice(0, topCount);
-
-  for (const c of top) {
-    if (!recent.has(c.article_id)) {
-      const idea = ctx.db.one<any>('SELECT * FROM ideas WHERE id = ?', c.idea_id);
-      return { idea, remakeOf: c.id };
-    }
-  }
   return null;
 }
 
@@ -142,7 +121,54 @@ function addDays(localDateStr: string, offset: number): string {
   return dt.toISOString().slice(0, 10);
 }
 
-export function run(ctx: Ctx, now?: Date): number {
+export function zonedSlot(day: string, hour: number, minute: number, timezone: string): Date {
+  const target = Date.parse(`${day}T00:00:00Z`) + (hour * 60 + minute) * 60000;
+  let value = target;
+  for (let i = 0; i < 3; i++) {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23',
+    }).formatToParts(new Date(value));
+    const p = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+    const local = Date.parse(`${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}:${p.second}Z`);
+    value += target - local;
+  }
+  return new Date(value);
+}
+
+interface PlanOptions { horizonHours?: number; dailyLimit?: number; priority?: number[] }
+
+export async function runWithProfile(ctx: Ctx, now?: Date, options: PlanOptions = {}): Promise<number> {
+  const candidates = ctx.db.all<{ id: number; article_id: string; angle: string; insight: string }>(`SELECT id, article_id, angle, insight FROM ideas i
+    WHERE status = 'available' AND NOT EXISTS (SELECT 1 FROM videos v WHERE v.idea_id = i.id) ORDER BY id LIMIT 100`);
+  if (!candidates.length) return run(ctx, now, options);
+  const signatureFor = (ids: number[]) => createHash('sha256').update(JSON.stringify({
+    ids, profile: getAgentProfile(ctx, 'planner'), day: getLocalDateStr(now || new Date(), ctx.settings.timezone),
+    options, schedule: ctx.settings.schedule,
+  })).digest('hex');
+  const signature = signatureFor(candidates.map((idea) => idea.id));
+  const cached = ctx.db.getKv<{ signature: string; priority: number[] } | null>('planner_priority', null);
+  if (cached?.signature === signature) return run(ctx, now, { ...options, priority: cached.priority });
+  const result = await agentTask(ctx, 'planner',
+    'Ưu tiên các ý tưởng cho lịch sản xuất. Trả về danh sách ID theo mức ưu tiên, chỉ dùng ID được cung cấp, không lặp ID. Không tạo hoặc đổi lịch, quota hay format. Các ràng buộc lịch và chống trùng vẫn được kiểm tra bằng code.',
+    JSON.stringify({ now: (now || new Date()).toISOString(), candidates, horizonHours: options.horizonHours ?? ctx.settings.schedule.queue_days * 24 }),
+    z.object({ ideaIds: z.array(z.number().int().positive()).min(1).max(100) }));
+  if (new Set(result.ideaIds).size !== result.ideaIds.length || result.ideaIds.some((id) => !candidates.some((idea) => idea.id === id))) {
+    throw new Error('Trưởng Ban Nội Dung trả về ID ý tưởng không hợp lệ.');
+  }
+  ctx.event(AGENT, 'Đã áp dụng hồ sơ để ưu tiên đề tài.');
+  const created = run(ctx, now, { ...options, priority: result.ideaIds });
+  const remaining = ctx.db.all<{ id: number }>(`SELECT id FROM ideas i WHERE status = 'available'
+    AND NOT EXISTS (SELECT 1 FROM videos v WHERE v.idea_id = i.id) ORDER BY id LIMIT 100`);
+  ctx.db.setKv('planner_priority', { signature: signatureFor(remaining.map((idea) => idea.id)), priority: result.ideaIds });
+  return created;
+}
+
+export function run(ctx: Ctx, now?: Date, options: PlanOptions = {}): number {
+  return ctx.db.tx(() => plan(ctx, now, options));
+}
+
+function plan(ctx: Ctx, now: Date | undefined, options: PlanOptions): number {
   const s = ctx.settings;
   const currentNow = now || new Date();
   const tz = s.timezone || 'Asia/Ho_Chi_Minh';
@@ -156,7 +182,8 @@ export function run(ctx: Ctx, now?: Date): number {
   const startDate = new Date(startRaw + 'T00:00:00Z');
 
   let created = 0;
-  for (let offset = 0; offset < s.schedule.queue_days; offset++) {
+  const days = options.horizonHours ? Math.ceil(options.horizonHours / 24) + 1 : s.schedule.queue_days;
+  for (let offset = 0; offset < days; offset++) {
     const dayStr = addDays(nowLocalDate, offset);
     const dayDate = new Date(dayStr + 'T00:00:00Z');
     const dayIndex = Math.floor((dayDate.getTime() - startDate.getTime()) / 86400000) + 1;
@@ -167,14 +194,12 @@ export function run(ctx: Ctx, now?: Date): number {
         continue;
       }
 
-      // Slot local time: assume GMT+7 (or UTC offset configured in s.schedule.timezone)
-      // Parse slot.time e.g. "07:30"
       const [h, m] = slot.time.split(':').map(Number);
-      // Construct date in Asia/Ho_Chi_Minh (+07:00)
-      const slotDate = new Date(`${dayStr}T${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00+07:00`);
+      const slotDate = zonedSlot(dayStr, h, m, tz);
       if (slotDate.getTime() <= currentNow.getTime()) {
         continue;
       }
+      if (options.horizonHours && slotDate.getTime() > currentNow.getTime() + options.horizonHours * 3600000) continue;
 
       const slotAt = isoUtc(slotDate);
       const exists = ctx.db.one<any>(
@@ -185,7 +210,12 @@ export function run(ctx: Ctx, now?: Date): number {
         continue;
       }
 
-      const choice = pickIdea(ctx, slot.format, slotDate);
+      if (options.dailyLimit !== undefined) {
+        const count = ctx.db.all<{ slot_at: string }>('SELECT slot_at FROM videos WHERE julianday(slot_at) IS NOT NULL')
+          .filter((video) => getLocalDateStr(new Date(video.slot_at), tz) === dayStr).length;
+        if (count >= options.dailyLimit) continue;
+      }
+      const choice = pickIdea(ctx, slot.format, slotDate, options.priority);
       if (!choice) {
         ctx.event(
           AGENT,

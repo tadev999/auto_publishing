@@ -1,4 +1,5 @@
 .env
+.env.web-tmp
 .venv/
 __pycache__/
 *.pyc
@@ -15,9 +16,4 @@ assets/music/*
 node_modules/
 dist/
 
-remotion/node_modules/
-remotion/out/
-
-desktop/node_modules/
-desktop/dist/
-desktop/release/
+apps/remotion/out/

@@ -3,7 +3,6 @@ import { Ctx } from '../context.js';
 import { VideoStatus } from '../db.js';
 import { LLM } from '../llm.js';
 import { Script, ScriptSchema } from '../schemas.js';
-import { bundle } from '../skills.js';
 
 export const AGENT = 'writer';
 export const WORDS_PER_SECOND = 2.4;
@@ -85,21 +84,16 @@ export function userPrompt(
   return parts.join('\n\n');
 }
 
-import { getAgentProfile } from '../skills.js';
+import { agentSystemPrompt, getAgentProfile } from '../skills.js';
 
 export async function runOne(ctx: Ctx, llm: LLM, video: any): Promise<void> {
   const idea = ctx.db.one<any>('SELECT * FROM ideas WHERE id = ?', video.idea_id);
   const body = articleBody(ctx, video.article_id);
 
   const profile = getAgentProfile(ctx, 'writer');
-  const skillsToBundle = Array.from(new Set([...profile.equippedSkills, `format-${video.format}`]));
+  const systemPrompt = agentSystemPrompt(ctx, 'writer', ROLE, [`format-${video.format}`]);
 
-  const systemPrompt = [
-    bundle(...skillsToBundle),
-    profile.systemPromptExtra ? `${ROLE}\n\n[CHỈ ĐỊNH ĐẶC BIỆT TỪ ĐẠO DIỄN]:\n${profile.systemPromptExtra}` : ROLE,
-  ];
-
-  const script = await llm.claude<Script>({
+  const script = await llm.structured<Script>({
     model: profile.model || ctx.settings.models['writer'],
     system: systemPrompt,
     user: userPrompt(ctx, video, idea, body),

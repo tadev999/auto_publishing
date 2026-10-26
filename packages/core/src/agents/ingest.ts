@@ -4,7 +4,8 @@ import { Ctx } from '../context.js';
 import { utcnow } from '../db.js';
 import { LLM } from '../llm.js';
 import { IdeaSeed, IngestResult, IngestResultSchema } from '../schemas.js';
-import { bundle } from '../skills.js';
+import { agentSystemPrompt, getAgentProfile } from '../skills.js';
+import { sameIdea, type IdeaIdentity } from '../ideaIdentity.js';
 
 export const AGENT = 'ingest';
 
@@ -51,18 +52,22 @@ export function verifiedSeed(seed: IdeaSeed, article: Article): IdeaSeed {
 }
 
 export async function ingestArticle(ctx: Ctx, llm: LLM, article: Article): Promise<number> {
-  const result = await llm.claude<IngestResult>({
-    model: ctx.settings.models['ingest'],
-    system: [bundle('endogenism-guardrails', 'endogenism-voice'), ROLE],
-    user: userPrompt(article),
+  const previous = ctx.db.all<IdeaIdentity>('SELECT article_id, angle, insight FROM ideas WHERE article_id = ?', article.id);
+  const profile = getAgentProfile(ctx, 'planner');
+  const request = {
+    model: profile.model,
+    system: agentSystemPrompt(ctx, 'planner', ROLE),
+    user: `${userPrompt(article)}\n\nCác góc đã có (không lặp lại hoặc diễn đạt lại):\n${JSON.stringify(previous)}`,
     schema: IngestResultSchema,
     maxTokens: 6000,
-    temperature: 0.4,
-  });
+    temperature: profile.temperature,
+  };
+  const result = await llm.structured<IngestResult>(request);
 
   const seeds = result.ideas.map((s) => verifiedSeed(s, article));
   const db = ctx.db;
 
+  let inserted = 0;
   db.tx(() => {
     db.run(
       `INSERT INTO articles(id, mach_slug, mach_index, mach_title, number, title, path, content_hash, ingested_at)
@@ -80,9 +85,10 @@ export async function ingestArticle(ctx: Ctx, llm: LLM, article: Article): Promi
       utcnow()
     );
 
-    db.run("DELETE FROM ideas WHERE article_id = ? AND status = 'available'", article.id);
-
+    const existing = db.all<IdeaIdentity>('SELECT article_id, angle, insight FROM ideas');
     for (const s of seeds) {
+      const identity = { article_id: article.id, angle: s.angle, insight: s.insight };
+      if (existing.some((idea) => sameIdea(identity, idea))) continue;
       db.run(
         `INSERT INTO ideas(article_id, angle, insight, quotes, metaphor, practice, question, emotion,
                              hook_seed, formats, primary_format, created_at)
@@ -100,16 +106,19 @@ export async function ingestArticle(ctx: Ctx, llm: LLM, article: Article): Promi
         s.formats[0],
         utcnow()
       );
+      existing.push(identity);
+      inserted++;
     }
   });
 
-  return seeds.length;
+  ctx.event(AGENT, `${article.id}: thêm ${inserted}, bỏ ${seeds.length - inserted} ý tưởng trùng/gần trùng`);
+  return inserted;
 }
 
 export async function run(
   ctx: Ctx,
   llm: LLM,
-  options: { force?: boolean; limit?: number; only?: string } = {}
+  options: { force?: boolean; limit?: number; only?: string; failFast?: boolean } = {}
 ): Promise<number> {
   const { force = false, limit, only } = options;
   let articles = loadArticles(ctx.settings.path('content_dir'));
@@ -136,6 +145,7 @@ export async function run(
         throw exc;
       }
       ctx.event(AGENT, `${article.id} lỗi: ${exc.message}`, { level: 'error' });
+      if (options.failFast) throw exc;
     }
   }
 

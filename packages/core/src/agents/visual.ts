@@ -5,10 +5,26 @@ import { Ctx } from '../context.js';
 import * as pexels from '../integrations/pexels.js';
 import * as pixabay from '../integrations/pixabay.js';
 import { requireBin, videoDir } from '../media.js';
+import { z } from 'zod';
+import { agentTask } from '../agentTask.js';
 
 export const AGENT = 'visual';
 export const SECONDS_PER_CLIP = 7;
 export const USED_KEY = 'stock_used_ids';
+
+export async function productionDirection(ctx: Ctx, video: { id: number; script: unknown; format: string }) {
+  const format = ctx.settings.formats[video.format];
+  const root = ctx.settings.path('music_dir');
+  const moods = fs.existsSync(root) ? fs.readdirSync(root, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory()).map((entry) => entry.name) : [];
+  const allowedMoods = [...new Set([format.music_mood, ...moods])];
+  const result = await agentTask(ctx, 'producer',
+    'Lập hướng sản xuất từ kịch bản đã duyệt. Không đổi lời thoại. Trả về 3–5 từ khóa tiếng Anh cụ thể để tìm cảnh quay, và một musicMood trong danh sách cho phép. Không tạo đường dẫn, URL hoặc đổi cấu hình render.',
+    JSON.stringify({ script: video.script, format: video.format, allowedMoods }),
+    z.object({ keywords: z.array(z.string().trim().min(1).max(100)).min(3).max(5), musicMood: z.string().min(1) }));
+  if (!allowedMoods.includes(result.musicMood)) throw new Error('Kỹ Sư Sản Xuất chọn loại nhạc ngoài danh sách cho phép.');
+  return result;
+}
 
 function pickMusic(ctx: Ctx, mood: string, seed: number): string | null {
   const root = ctx.settings.path('music_dir');
@@ -180,12 +196,15 @@ async function stockClips(
 }
 
 export async function runOne(ctx: Ctx, video: any): Promise<Record<string, any>> {
+  ctx.event(AGENT, 'Bắt đầu chuẩn bị cảnh quay và nhạc nền', { videoId: video.id, phase: 'started' });
   const fmt = ctx.settings.formats[video.format];
   const media = video.media
     ? typeof video.media === 'string'
       ? JSON.parse(video.media)
       : { ...video.media }
     : {};
+  const direction = await productionDirection(ctx, video);
+  media.production_direction = direction;
 
   const publicDir = path.join(videoDir(ctx.settings.dataDir, video.id), 'public');
   if (!fs.existsSync(publicDir)) {
@@ -193,10 +212,9 @@ export async function runOne(ctx: Ctx, video: any): Promise<Record<string, any>>
   }
 
   if (fmt.visual === 'stock' && !media.clips) {
-    const script = typeof video.script === 'string' ? JSON.parse(video.script) : video.script;
     const speechSec = media.speech_seconds || 30;
     const count = Math.max(2, Math.min(5, Math.ceil(speechSec / SECONDS_PER_CLIP)));
-    const keywords = [...(script?.visual_keywords || []), 'calm window light'];
+    const keywords = direction.keywords;
 
     media.clips = await stockClips(ctx, keywords, count, publicDir);
     ctx.event(
@@ -207,7 +225,7 @@ export async function runOne(ctx: Ctx, video: any): Promise<Record<string, any>>
   }
 
   if (!('music' in media)) {
-    const track = pickMusic(ctx, fmt.music_mood, video.id);
+    const track = pickMusic(ctx, direction.musicMood, video.id);
     if (track) {
       fs.copyFileSync(track, path.join(publicDir, 'music.mp3'));
       media.music = 'music.mp3';
@@ -221,5 +239,6 @@ export async function runOne(ctx: Ctx, video: any): Promise<Record<string, any>>
     }
   }
 
+  ctx.event(AGENT, 'Đã chuẩn bị cảnh quay và nhạc nền', { videoId: video.id, phase: 'finished' });
   return media;
 }

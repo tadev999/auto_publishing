@@ -26,6 +26,7 @@ export async function runDemoWalkthrough(): Promise<boolean> {
   console.log('==================================================\n');
 
   // 1. Ingest
+  ctx.event('ingest', '[DEMO] Bắt đầu nạp ý tưởng mẫu', { phase: 'started' });
   console.log('--- [BƯỚC 1: INGEST] Tách ý tưởng từ bài viết gốc ---');
   const articles = loadArticles(ctx.settings.path('content_dir'));
   const targetArticles = articles.filter((a) => ['bai-001', 'bai-002'].includes(a.id));
@@ -94,8 +95,10 @@ export async function runDemoWalkthrough(): Promise<boolean> {
   const countIdeas = ctx.db.one<any>('SELECT COUNT(*) AS n FROM ideas').n;
   console.log(`✅ Ingest xong. Tổng số ý tưởng trong kho: ${countIdeas}\n`);
   await sleep(2200);
+  ctx.event('ingest', '[DEMO] Hoàn tất nạp ý tưởng mẫu', { phase: 'finished' });
 
   // 2. Planner
+  ctx.event('planner', '[DEMO] Bắt đầu lên lịch video mẫu', { phase: 'started' });
   console.log('--- [BƯỚC 2: PLANNER] Lên lịch phát sóng cho slot sắp tới ---');
   const now = new Date();
   const existingSlots = new Set(
@@ -131,11 +134,12 @@ export async function runDemoWalkthrough(): Promise<boolean> {
     );
     ctx.db.run("UPDATE ideas SET status = 'used' WHERE id = ?", ideaRow.id);
   });
-  ctx.event('planner', `Lên lịch Video #${videoId} (${formatName} #1) lúc ${slotAt}`, { videoId });
-  console.log(`✅ Đã tạo Video #${videoId} trong hàng đợi với trạng thái PLANNED.\n`);
   await sleep(2200);
+  ctx.event('planner', `Lên lịch Video #${videoId} (${formatName} #1) lúc ${slotAt}`, { videoId, phase: 'finished' });
+  console.log(`✅ Đã tạo Video #${videoId} trong hàng đợi với trạng thái PLANNED.\n`);
 
   // 3. Writer
+  ctx.event('writer', '[DEMO] Bắt đầu tạo kịch bản mẫu', { videoId, phase: 'started' });
   console.log('--- [BƯỚC 3: WRITER] Viết kịch bản mẫu với 3 hook styles ---');
   const mockScript: Script = {
     hooks: [
@@ -184,12 +188,13 @@ export async function runDemoWalkthrough(): Promise<boolean> {
     status: VideoStatus.SCRIPTED,
     script: mockScript,
   });
-  ctx.event('writer', 'Hoàn thành bản nháp kịch bản vòng 1 với 3 hook', { videoId });
+  await sleep(2200);
+  ctx.event('writer', 'Hoàn thành bản nháp kịch bản vòng 1 với 3 hook', { videoId, phase: 'finished' });
   console.log('✅ Writer tạo kịch bản xong:');
   console.log(`   Hook: ${mockScript.hooks[0].text}\n`);
-  await sleep(2200);
 
   // 4. Critic
+  ctx.event('critic', '[DEMO] Bắt đầu thẩm định mẫu', { videoId, phase: 'started' });
   console.log('--- [BƯỚC 4: CRITIC] Thẩm định chất lượng kịch bản ---');
   const mockCritic: CriticReport = {
     scores: {
@@ -226,11 +231,12 @@ export async function runDemoWalkthrough(): Promise<boolean> {
     critic_rounds: 1,
     hook_style: mockScript.hooks[0].style,
   });
-  ctx.event('critic', 'DUYỆT vòng 1: 9.1/10 · hook [reversal]', { videoId });
-  console.log('✅ Critic thông qua kịch bản với điểm 9.1/10.\n');
   await sleep(2200);
+  ctx.event('critic', 'DUYỆT vòng 1: 9.1/10 · hook [reversal]', { videoId, phase: 'finished' });
+  console.log('✅ Critic thông qua kịch bản với điểm 9.1/10.\n');
 
   // 5. Voice
+  ctx.event('voice', '[DEMO] Bắt đầu tạo âm thanh và phụ đề', { videoId, phase: 'started' });
   console.log('--- [BƯỚC 5: VOICE] Tạo giọng đọc mẫu và căn chỉnh phụ đề ---');
   const outDir = videoDir(ctx.settings.dataDir, videoId);
   const publicDir = path.join(outDir, 'public');
@@ -294,11 +300,12 @@ export async function runDemoWalkthrough(): Promise<boolean> {
       speech_seconds: captionsData.speech_end,
     },
   });
-  ctx.event('voice', `Giọng đọc ${captionsData.speech_end}s · ${pages.length} khung phụ đề`, { videoId });
-  console.log(`✅ Voice hoàn tất: thời lượng ${captionsData.duration}s.\n`);
   await sleep(2200);
+  ctx.event('voice', `Giọng đọc ${captionsData.speech_end}s · ${pages.length} khung phụ đề`, { videoId, phase: 'finished' });
+  console.log(`✅ Voice hoàn tất: thời lượng ${captionsData.duration}s.\n`);
 
   // 6. Visual & Render
+  ctx.event('render', '[DEMO] Bắt đầu dựng video mẫu', { videoId, phase: 'started' });
   console.log('--- [BƯỚC 6: RENDER] Dựng video dọc 9:16 bằng Remotion ---');
   const remotionDir = ctx.settings.path('remotion_dir');
   const propsPath = path.join(outDir, 'props.json');
@@ -365,11 +372,12 @@ export async function runDemoWalkthrough(): Promise<boolean> {
       video: 'video.mp4',
     },
   });
-  ctx.event('render', `Dựng xong video MP4 -> ${finalVideo}`, { videoId });
-  console.log(`✅ Render hoàn tất: ${finalVideo}\n`);
   await sleep(2200);
+  ctx.event('render', `Dựng xong video MP4 -> ${finalVideo}`, { videoId, phase: 'finished' });
+  console.log(`✅ Render hoàn tất: ${finalVideo}\n`);
 
   // 7. QA
+  ctx.event('qa', '[DEMO] Bắt đầu kiểm tra video mẫu', { videoId, phase: 'started' });
   console.log('--- [BƯỚC 7: QA] Kiểm tra thông số kỹ thuật video ---');
   const probeInfo = probe(finalVideo);
   console.log(`   Kích thước: ${probeInfo.width}x${probeInfo.height}`);
@@ -388,20 +396,23 @@ export async function runDemoWalkthrough(): Promise<boolean> {
       duration: probeInfo.duration,
     },
   });
+  await sleep(2200);
   ctx.event('qa', `Đạt kiểm định: ${probeInfo.duration.toFixed(1)}s, ${probeInfo.width}x${probeInfo.height} (9:16 Full HD)`, {
+    phase: 'finished',
     videoId,
   });
   console.log('✅ QA kiểm định thành công.\n');
-  await sleep(2200);
 
   // 8. Upload & Publisher (Distribution to TikTok & Instagram Reels)
+  ctx.event('upload', '[DEMO] Bắt đầu đóng gói video mẫu', { videoId, phase: 'started' });
   console.log('--- [BƯỚC 8: ĐIỀU PHỐI & PHÁT HÀNH] Xuất bản đa nền tảng theo Khung Giờ Vàng ---');
   ctx.db.updateVideo(videoId, { status: VideoStatus.QUEUED });
+  await sleep(2200);
   ctx.event('upload', `Đóng gói siêu dữ liệu Video #${videoId}: 1080x1920, thẻ hashtag #noisinh #endogenism #tamly #chualanh`, {
+    phase: 'finished',
     videoId,
   });
   console.log('📦 Điều phối: Đã đóng gói metadata, phụ đề và thẻ tag.');
-  await sleep(2200);
 
   console.log('🚀 Điều phối: Đang phân phối lên TikTok (@noisinh.vn) và Instagram Reels...');
   ctx.db.run(
@@ -413,23 +424,26 @@ export async function runDemoWalkthrough(): Promise<boolean> {
     utcnow()
   );
 
-  ctx.event('publisher', `[TIKTOK] Đã xuất bản lên TikTok @noisinh.vn lúc khung giờ vàng · ID: tt_${videoId}_live`, {
+  ctx.event('publisher', `[DEMO] [TIKTOK] Mô phỏng xuất bản · ID: tt_${videoId}_live`, {
+    phase: 'started',
     videoId,
   });
   await sleep(2200);
 
-  ctx.event('publisher', `[INSTAGRAM] Đã xuất bản lên Reels @noisinh.vn với audio gốc · ID: ig_${videoId}_reels`, {
-    videoId,
-  });
-  await sleep(2200);
-
+  ctx.event('publisher', `[DEMO] [INSTAGRAM] Mô phỏng xuất bản · ID: ig_${videoId}_reels`, { videoId });
   ctx.db.updateVideo(videoId, { status: VideoStatus.PUBLISHED });
-
-  ctx.event('analytics', `Kích hoạt tiến trình giám sát số liệu Retention Rate (giữ chân 3s) và View Completion sau 24h`, {
+  await sleep(2200);
+  ctx.event('publisher', '[DEMO] Hoàn tất mô phỏng phát hành đa nền tảng', { videoId, phase: 'finished' });
+  ctx.event('analytics', '[DEMO] Bắt đầu mô phỏng kiểm tra số liệu giữ chân và lượt xem', {
+    phase: 'started',
     videoId,
   });
   console.log(`✅ Xuất bản hoàn tất cho Video #${videoId} trên cả TikTok & Instagram Reels!\n`);
   await sleep(2200);
+  ctx.event('analytics', '[DEMO] Hoàn tất mô phỏng kiểm tra số liệu; không khởi chạy giám sát thật', {
+    phase: 'finished',
+    videoId,
+  });
 
   console.log('==================================================');
   console.log('🎉 TOÀN BỘ QUY TRÌNH MULTI-AGENT ĐÃ CHẠY THÀNH CÔNG (100% NODE/TS)!');

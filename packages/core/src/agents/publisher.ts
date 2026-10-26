@@ -7,6 +7,28 @@ import { notify } from '../integrations/telegram.js';
 import { TikTok } from '../integrations/tiktok.js';
 import { YouTube } from '../integrations/youtube.js';
 import { probe, videoDir } from '../media.js';
+import { assertUniqueScript, sameIdea, type IdeaIdentity } from '../ideaIdentity.js';
+import { z } from 'zod';
+import { agentTask } from '../agentTask.js';
+import { getAgentProfile } from '../skills.js';
+import { createHash } from 'node:crypto';
+
+export async function reviewPublication(ctx: Ctx, video: { id: number; script: unknown }) {
+  const signature = createHash('sha256').update(JSON.stringify({
+    profile: getAgentProfile(ctx, 'publisher'), script: video.script, platforms: ctx.settings.publish.platforms,
+    dryRun: ctx.settings.publish.dry_run,
+  })).digest('hex');
+  const key = `publication_review:${video.id}`;
+  const cached = ctx.db.getKv<{ signature: string; result: { approved: boolean; reason: string } } | null>(key, null);
+  const result = cached?.signature === signature ? cached.result : await agentTask(ctx, 'publisher',
+    'Rà soát metadata trước khi đăng. Chỉ trả về approved=true khi caption và hashtag trung thực với kịch bản, không giật tít, không hứa quá mức. Nếu không đạt, approved=false kèm reason cụ thể. Không thay đổi nội dung, nền tảng, giờ đăng hoặc trạng thái kỹ thuật. Không được yêu cầu đăng lại.',
+    JSON.stringify({ script: video.script, platforms: ctx.settings.publish.platforms, dryRun: ctx.settings.publish.dry_run }),
+    z.object({ approved: z.boolean(), reason: z.string().trim().min(1).max(2000) }));
+  if (cached?.signature !== signature) ctx.db.setKv(key, { signature, result });
+  ctx.event(AGENT, `Rà soát phát hành: ${result.reason}`, { videoId: video.id, level: result.approved ? 'info' : 'error' });
+  if (!result.approved) throw new Error(`Điều Phối Phát Hành chưa duyệt video #${video.id}: ${result.reason}`);
+  return result;
+}
 
 export const AGENT = 'publisher';
 export const PAUSE_KEY = 'paused';
@@ -107,13 +129,34 @@ const PUBLISHERS: Record<string, (ctx: Ctx, video: any) => Promise<any>> = {
   youtube: publishYouTube,
 };
 
-export async function publishVideo(ctx: Ctx, video: any): Promise<void> {
+export async function publishVideo(ctx: Ctx, video: any, options: { preventDuplicates?: boolean } = {}): Promise<void> {
   const s = ctx.settings;
+  if (options.preventDuplicates) {
+    assertUniqueScript(ctx, video);
+    const identity = ctx.db.one<IdeaIdentity>('SELECT article_id, angle, insight FROM ideas WHERE id = ?', video.idea_id);
+    if (!identity) throw new Error(`Không tìm thấy ý tưởng gốc của video #${video.id}.`);
+    const other = ctx.db.all<IdeaIdentity>(`SELECT i.article_id, i.angle, i.insight FROM ideas i
+      JOIN videos v ON v.idea_id = i.id WHERE v.id != ?`, video.id);
+    if (other.some((idea) => sameIdea(identity, idea))) {
+      throw new Error(`Video #${video.id} trùng/gần trùng ý tưởng trong lịch sử; không tự phát hành.`);
+    }
+  }
+
+  const existing = ctx.db.all<{ platform: string; status: string }>('SELECT platform, status FROM publications WHERE video_id = ?', video.id);
+  if (existing.some((pub) => s.publish.platforms.includes(pub.platform) && ['publishing', 'review_required'].includes(pub.status))) {
+    throw new Error(`Video #${video.id} cần đối soát kết quả trước khi đăng lại.`);
+  }
+  const pending = s.publish.platforms.some((platform) => !existing.some((pub) => pub.platform === platform
+    && ['published', 'dry_run', 'failed'].includes(pub.status)));
+  if (pending) await reviewPublication(ctx, video);
 
   for (const platform of s.publish.platforms) {
     const pub = getOrCreatePublication(ctx, video.id, platform);
     if (['published', 'dry_run', 'failed'].includes(pub.status)) {
       continue;
+    }
+    if (['publishing', 'review_required'].includes(pub.status)) {
+      throw new Error(`Publication #${pub.id} cần đối soát kết quả trước khi đăng lại.`);
     }
 
     if (s.publish.dry_run) {
@@ -131,6 +174,9 @@ export async function publishVideo(ctx: Ctx, video: any): Promise<void> {
     }
 
     try {
+      if (options.preventDuplicates) {
+        ctx.db.run("UPDATE publications SET status = 'publishing' WHERE id = ?", pub.id);
+      }
       const publisherFn = PUBLISHERS[platform];
       if (!publisherFn) {
         throw new Error(`Unsupported platform: ${platform}`);
@@ -161,7 +207,7 @@ export async function publishVideo(ctx: Ctx, video: any): Promise<void> {
         'UPDATE publications SET attempts = ?, error = ?, status = ? WHERE id = ?',
         attempts,
         String(exc.message || exc).slice(0, 1000),
-        final ? 'failed' : 'pending',
+        options.preventDuplicates ? 'review_required' : final ? 'failed' : 'pending',
         pub.id
       );
       ctx.event(AGENT, `${platform} lỗi (lần ${attempts}): ${exc.message || exc}`, {
@@ -171,10 +217,12 @@ export async function publishVideo(ctx: Ctx, video: any): Promise<void> {
       if (final) {
         await notify(s, `❌ Đăng ${platform} thất bại cho video #${video.id}: ${exc.message || exc}`);
       }
+      if (options.preventDuplicates) throw exc;
     }
   }
 
-  const pubs = ctx.db.all<any>('SELECT status FROM publications WHERE video_id = ?', video.id);
+  const pubs = ctx.db.all<{ status: string; platform: string }>('SELECT status, platform FROM publications WHERE video_id = ?', video.id)
+    .filter((publication) => s.publish.platforms.includes(publication.platform));
   const states = new Set(pubs.map((p) => p.status));
   const doneStates = new Set(['published', 'dry_run', 'failed']);
 
@@ -195,7 +243,7 @@ export async function publishVideo(ctx: Ctx, video: any): Promise<void> {
   }
 }
 
-export async function run(ctx: Ctx, now?: Date): Promise<number> {
+export async function run(ctx: Ctx, now?: Date, options: { preventDuplicates?: boolean } = {}): Promise<number> {
   if (ctx.db.getKv(PAUSE_KEY)) {
     ctx.event(AGENT, 'Đang tạm dừng (npm run endo resume để chạy lại)', { level: 'warning' });
     return 0;
@@ -203,13 +251,13 @@ export async function run(ctx: Ctx, now?: Date): Promise<number> {
 
   const nowIso = (now || new Date()).toISOString().replace(/\.\d{3}Z$/, 'Z');
   const due = ctx.db.all<any>(
-    'SELECT * FROM videos WHERE status = ? AND slot_at <= ? ORDER BY slot_at',
+    "SELECT * FROM videos WHERE status IN (?, 'qa_passed') AND julianday(slot_at) <= julianday(?) ORDER BY julianday(slot_at)",
     VideoStatus.QUEUED,
     nowIso
   );
 
   for (const video of due) {
-    await publishVideo(ctx, video);
+    await publishVideo(ctx, video, options);
   }
   return due.length;
 }

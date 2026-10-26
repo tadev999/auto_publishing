@@ -143,6 +143,12 @@ describe('core', () => {
       for (const val of Object.values(stats)) {
         expect(val).toBe(1);
       }
+      expect(ctx.db.all<{ agent: string; phase: string }>(
+        'SELECT agent, phase FROM events WHERE phase IS NOT NULL ORDER BY id',
+      )).toEqual(pipeline.STAGES.flatMap((stage) => [
+        { agent: stage.name, phase: 'started' },
+        { agent: stage.name, phase: 'finished' },
+      ]));
     } finally {
       // Restore handlers
       originalStages.forEach((orig, i) => {

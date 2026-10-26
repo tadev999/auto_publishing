@@ -8,6 +8,7 @@ export * from './skills.js';
 export * from './captions.js';
 export * from './media.js';
 export * from './pipeline.js';
+export * from './automation.js';
 export * from './integrations/tiktok.js';
 export * from './integrations/instagram.js';
 export * from './integrations/storage.js';
@@ -17,4 +18,3 @@ export * as pixabay from './integrations/pixabay.js';
 export * from './integrations/telegram.js';
 export * from './integrations/youtube.js';
 export * as agents from './agents/index.js';
-

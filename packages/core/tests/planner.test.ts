@@ -39,8 +39,10 @@ function seed(ctx: Ctx, articles = 12, mach = 1, start = 1) {
     for (let i = 0; i < 3; i++) {
       ctx.db.run(
         `INSERT INTO ideas(article_id, angle, insight, quotes, formats, primary_format, status, question, emotion, hook_seed, created_at)
-         VALUES(?, 'angle', 'insight', '[]', ?, ?, 'available', 'q', 'e', 'h', ?)`,
+         VALUES(?, ?, ?, '[]', ?, ?, 'available', 'q', 'e', 'h', ?)`,
         aid,
+        `Góc ${aid}-${i}`,
+        `Nội dung riêng ${aid}-${i}`,
         JSON.stringify(ALL),
         ALL[0],
         utcnow()

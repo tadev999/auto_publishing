@@ -35,6 +35,7 @@ export function buildProps(
 
 export async function runOne(ctx: Ctx, video: any): Promise<void> {
   const media = await visual.runOne(ctx, video);
+  ctx.event(AGENT, 'Bắt đầu kết xuất video bằng Remotion', { videoId: video.id, phase: 'started' });
   ctx.db.updateVideo(video.id, { media });
 
   const out = videoDir(ctx.settings.dataDir, video.id);

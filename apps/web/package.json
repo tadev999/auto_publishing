@@ -1,0 +1,37 @@
+{
+  "name": "@endo/web",
+  "productName": "Endogenism Studio",
+  "version": "0.1.0",
+  "description": "Endogenism Studio web dashboard and pipeline server",
+  "author": "Endogenism",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx server/index.ts --dev",
+    "build": "tsc --noEmit && tsc -p tsconfig.server.json && vite build",
+    "start": "tsx server/index.ts",
+    "test": "vitest run server src/core"
+  },
+  "dependencies": {
+    "@endo/core": "*",
+    "dotenv": "^16.4.7",
+    "express": "^5.1.0",
+    "js-yaml": "^4.1.0",
+    "pixi.js": "^8.22.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tsx": "^4.19.3",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
+    "@types/express": "^5.0.0",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^20.17.24",
+    "@vitejs/plugin-react": "^4.7.0",
+    "typescript": "^5.9.3",
+    "vite": "^5.4.21",
+    "vitest": "^3.0.7"
+  }
+}

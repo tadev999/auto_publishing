@@ -6,7 +6,7 @@ import { VideoStatus } from '../db.js';
 import { LLM } from '../llm.js';
 import { extractFrames, probe, videoDir } from '../media.js';
 import { CriticReport, CriticReportSchema, QAReport, QAReportSchema, Script, ScriptSchema } from '../schemas.js';
-import { bundle, getAgentProfile } from '../skills.js';
+import { agentSystemPrompt, getAgentProfile } from '../skills.js';
 import { targetWords } from './writer.js';
 
 export const AGENT = 'critic';
@@ -82,15 +82,9 @@ export async function runOne(ctx: Ctx, llm: LLM, video: any): Promise<void> {
   const idea = ctx.db.one<any>('SELECT insight, quotes FROM ideas WHERE id = ?', video.idea_id);
 
   const profile = getAgentProfile(ctx, 'critic');
-  const skillsToBundle = Array.from(new Set([...profile.equippedSkills, `format-${video.format}`]));
+  const systemPrompt = agentSystemPrompt(ctx, 'critic', ROLE, [`format-${video.format}`]);
 
-  const systemPrompt = [
-    ROLE,
-    profile.systemPromptExtra ? `[CHỈ ĐỊNH ĐẶC BIỆT TỪ ĐẠO DIỄN]:\n${profile.systemPromptExtra}` : '',
-    bundle(...skillsToBundle),
-  ].filter(Boolean).join('\n\n');
-
-  const report = await llm.gpt<CriticReport>({
+  const report = await llm.structured<CriticReport>({
     model: profile.model || ctx.settings.models['critic'],
     temperature: profile.temperature ?? 0.3,
     system: systemPrompt,
@@ -227,13 +221,14 @@ export async function runVisionQA(ctx: Ctx, llm: LLM, video: any): Promise<void>
   const timepoints = [0.15, 0.4, 0.65, 0.9].map((p) => info.duration * p);
   const frames = extractFrames(videoPath, timepoints, framesDir);
 
-  const report = await llm.gpt<QAReport>({
-    model: s.models['qa_vision'],
-    system: VISION_PROMPT,
+  const profile = getAgentProfile(ctx, 'critic');
+  const report = await llm.structured<QAReport>({
+    model: profile.model,
+    system: agentSystemPrompt(ctx, 'critic', VISION_PROMPT, [`format-${video.format}`]),
     user: 'Kiểm tra 4 khung hình sau.',
     schema: QAReportSchema,
     images: frames,
-    temperature: 0,
+    temperature: profile.temperature,
   });
 
   if (!report.passed) {
@@ -254,4 +249,3 @@ export async function runVisionQA(ctx: Ctx, llm: LLM, video: any): Promise<void>
     videoId: video.id,
   });
 }
-
