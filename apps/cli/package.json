@@ -1,0 +1,24 @@
+{
+  "name": "@endo/cli",
+  "version": "0.1.0",
+  "description": "Endogenism CLI - Command Line Automation Runner",
+  "type": "module",
+  "bin": {
+    "endo": "./dist/cli.js"
+  },
+  "main": "./dist/cli.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "tsx src/cli.ts"
+  },
+  "dependencies": {
+    "@endo/core": "*",
+    "commander": "^13.1.0",
+    "picocolors": "^1.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.24",
+    "tsx": "^4.19.3",
+    "typescript": "^5.7.3"
+  }
+}

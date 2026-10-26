@@ -1,0 +1,47 @@
+[
+  {
+    "article_id": "bai-001",
+    "angle": "Nhận diện kiệt sức mãn tính không phải vì thiếu ngủ",
+    "insight": "Kiệt sức vì cố gắng quá lâu để trở thành phiên bản không phải là thật của mình.",
+    "quotes": [
+      "Bạn ngủ đủ giấc. Đôi khi còn ngủ nhiều hơn bình thường.",
+      "Không. Bạn không lười. Và bạn không làm quá."
+    ],
+    "metaphor": "Cỗ máy chạy ngầm không bao giờ tắt",
+    "practice": "Dừng lại năm giây trước khi mở điện thoại sáng nay",
+    "question": "Hôm nay bạn muốn hành động từ nỗi sợ hay từ chỗ đứng vững?",
+    "emotion": "nhẹ nhõm, được thấu hiểu",
+    "hook_seed": "Có một kiểu mệt không phải vì thiếu ngủ.",
+    "formats": ["goi-ten", "cau-hoi", "ngo-nhan"]
+  },
+  {
+    "article_id": "bai-001",
+    "angle": "Ngộ nhận về việc nghỉ ngơi",
+    "insight": "Nghỉ ngơi chỉ tạm dừng triệu chứng, không giải quyết được nguồn cơn khi sống sai bản chất.",
+    "quotes": [
+      "Nghỉ một tuần, rồi quay lại, rồi mệt tiếp. Vòng lặp đó quen không?",
+      "Bạn không lười. Và bạn không làm quá."
+    ],
+    "metaphor": "Tắt màn hình nhưng CPU vẫn chạy 100%",
+    "practice": "",
+    "question": "Bạn đang chạy bằng nhiên liệu gì?",
+    "emotion": "tỉnh thức",
+    "hook_seed": "Nghỉ ngơi không chữa được kiểu mệt này.",
+    "formats": ["ngo-nhan", "cau-hoi"]
+  },
+  {
+    "article_id": "bai-002",
+    "angle": "Sự thật về ranh giới cá nhân",
+    "insight": "Ranh giới không phải bức tường để đẩy người khác ra, mà là cánh cửa để biết mình đứng ở đâu.",
+    "quotes": [
+      "Nói có khi trong lòng muốn nói không.",
+      "Ranh giới được dựng lên từ sự thấu suốt, không phải sự phòng vệ."
+    ],
+    "metaphor": "Căn nhà không có cửa khóa",
+    "practice": "Tập nói: Tôi cần thêm thời gian để suy nghĩ về việc này.",
+    "question": "Lần gần nhất bạn từ chối ai đó mà không thấy tội lỗi là khi nào?",
+    "emotion": "vững chãi, an toàn",
+    "hook_seed": "Vì sao bạn luôn thấy kiệt sức sau khi gặp gỡ người khác?",
+    "formats": ["thuc-hanh", "goi-ten"]
+  }
+]

@@ -11,13 +11,13 @@ paths:
   content_dir: endogenism
   data_dir: data
   music_dir: assets/music
-  remotion_dir: remotion
+  remotion_dir: apps/remotion
 
 models:
-  ingest: claude-sonnet-4-5
-  writer: claude-sonnet-4-5
-  critic: gpt-4o-mini
-  qa_vision: gpt-4o-mini
+  ingest: gemini-3.8-flash
+  writer: gemini-3.8-flash
+  critic: gemini-3.8-flash
+  qa_vision: gemini-3.8-flash
 
 voice:
   # Vietnamese is supported by the v2.5 / v3 model families, not by multilingual_v2.
@@ -53,7 +53,7 @@ formats:
   goi-ten:
     label: "Gọi tên"
     duration: [30, 45]
-    visual: kinetic
+    visual: stock
     music_mood: reflective
   ngo-nhan:
     label: "Ngộ nhận & Sự thật"
@@ -94,7 +94,7 @@ render:
   duration_slack: [3, 8]
 
 publish:
-  platforms: [instagram, tiktok]
+  platforms: [youtube] # Tạm thời chỉ upload YouTube; mở lại [instagram, tiktok, youtube] khi sẵn sàng
   dry_run: true
   instagram_graph_version: v23.0
   # Instagram has no API flag for AI labels, so the disclosure goes into the caption.

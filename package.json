@@ -1,38 +1,26 @@
 {
-  "name": "auto-publishing",
+  "name": "auto-publishing-monorepo",
   "version": "0.1.0",
-  "description": "AI agents that turn Endogenism articles into short videos and publish them to Instagram Reels & TikTok (Pure Node.js / TypeScript)",
-  "type": "module",
+  "description": "AI agents that turn Endogenism articles into short videos and publish them to Instagram Reels & TikTok (Pure Node.js Monorepo)",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
   "bin": {
-    "endo": "./dist/cli.js"
+    "endo": "./apps/cli/dist/cli.js"
   },
   "scripts": {
-    "build": "tsc",
-    "endo": "tsx src/cli.ts",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "desktop:dev": "cd desktop && npm run dev",
-    "desktop:build": "cd desktop && npm run build",
-    "desktop:dist": "cd desktop && npm run dist",
-    "remotion:studio": "cd remotion && npm run studio"
-  },
-  "dependencies": {
-    "@anthropic-ai/sdk": "^0.39.0",
-    "@aws-sdk/client-s3": "^3.1156.0",
-    "@aws-sdk/s3-request-presigner": "^3.1156.0",
-    "better-sqlite3": "^11.8.1",
-    "commander": "^13.1.0",
-    "dotenv": "^16.4.7",
-    "gray-matter": "^4.0.3",
-    "js-yaml": "^4.1.0",
-    "openai": "^4.86.0",
-    "picocolors": "^1.1.1",
-    "zod": "^3.24.2"
+    "build": "npm run build --workspace=@endo/core && npm run build --workspace=@endo/cli && npm run build --workspace=@endo/desktop",
+    "endo": "npm run start --workspace=@endo/cli --",
+    "test": "npm run test --workspace=@endo/core",
+    "desktop:dev": "npm run dev --workspace=@endo/desktop",
+    "desktop:build": "npm run build --workspace=@endo/desktop",
+    "desktop:start": "npm run start --workspace=@endo/desktop",
+    "desktop:dist": "npm run dist --workspace=@endo/desktop",
+    "remotion:studio": "npm run studio --workspace=@endo/remotion"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.12",
-    "@types/js-yaml": "^4.0.9",
-    "@types/node": "^20.17.24",
     "tsx": "^4.19.3",
     "typescript": "^5.7.3",
     "vitest": "^3.0.7"
