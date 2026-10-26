@@ -82,7 +82,7 @@ describe('saved team profiles', () => {
     ctx.db.setKv('automation', { enabled: false, dailyLimit: 7 });
     expect(Object.keys(getAllAgentProfiles(ctx))).toHaveLength(5);
     expect(ctx.db.getKv('agent_profiles_before_v2')).toEqual({ producer: { model: 'old-engine' } });
-    expect(getAgentProfile(ctx, 'producer').model).toBe('gpt-4o');
+    expect(getAgentProfile(ctx, 'producer').model).toBe('gemini-3.8-flash');
     const saved = customize('producer');
     const reopened = makeCtx(ctx.settings);
     try { expect(getAgentProfile(reopened, 'producer')).toEqual(saved); }

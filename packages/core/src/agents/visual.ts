@@ -86,65 +86,65 @@ async function stockClips(
   const hasPixabay = Boolean(ctx.settings.secret('PIXABAY_API_KEY', false));
   const hasPexels = Boolean(ctx.settings.secret('PEXELS_API_KEY', false));
 
-  try {
-    for (const kw of keywords) {
-      if (picked.length >= count) break;
+  // Mỗi ứng viên: một clip có thể tải về, gắn với từ khóa sinh ra nó.
+  type Candidate = { id: number; url: string; author?: string; page: string; source: 'pixabay' | 'pexels' };
+  const uniqueKeywords = [...new Set(keywords.map((k) => k.trim()).filter(Boolean))];
 
-      if (hasPixabay) {
-        let items: pixabay.PixabayVideo[] = [];
-        try {
-          items = await pixabay.searchVideos(ctx.settings, kw);
-        } catch (err: any) {
-          ctx.event(AGENT, `Pixabay API không khả dụng cho "${kw}": ${err.message}`, { level: 'warning' });
-        }
-
-        for (const item of items) {
-          if (picked.length >= count) break;
-          if (used.includes(item.id) || picked.some((p) => p.id === item.id)) continue;
+  async function candidatesFor(kw: string): Promise<Candidate[]> {
+    if (hasPixabay) {
+      try {
+        const items = await pixabay.searchVideos(ctx.settings, kw);
+        const list = items.flatMap((item) => {
           const f = pixabay.bestFile(item);
-          if (!f) continue;
-
-          const name = `clip_${picked.length}.mp4`;
-          const dest = path.join(publicDir, name);
-          try {
-            await pixabay.download(f.url, dest);
-            picked.push({
-              id: item.id,
-              file: name,
-              author: item.user,
-              url: item.url,
-              keyword: kw,
-              source: 'pixabay',
-            });
-          } catch {}
-        }
-      } else if (hasPexels) {
-        let items: pexels.PexelsVideo[] = [];
-        try {
-          items = await pexels.searchPortraitVideos(ctx.settings, kw);
-        } catch (err: any) {
-          ctx.event(AGENT, `Pexels API không khả dụng cho "${kw}": ${err.message}`, { level: 'warning' });
-        }
-
-        for (const item of items) {
-          if (picked.length >= count) break;
-          if (used.includes(item.id) || picked.some((p) => p.id === item.id)) continue;
+          return f ? [{ id: item.id, url: f.url, author: item.user, page: item.url, source: 'pixabay' as const }] : [];
+        });
+        if (list.length > 0 || !hasPexels) return list;
+      } catch (err: any) {
+        ctx.event(AGENT, `Pixabay API không khả dụng cho "${kw}": ${err.message}`, { level: 'warning' });
+        if (!hasPexels) return [];
+      }
+    }
+    if (hasPexels) {
+      try {
+        const items = await pexels.searchPortraitVideos(ctx.settings, kw);
+        return items.flatMap((item) => {
           const f = pexels.bestFile(item);
-          if (!f) continue;
+          return f ? [{ id: item.id, url: f.link, author: item.user?.name, page: item.url, source: 'pexels' as const }] : [];
+        });
+      } catch (err: any) {
+        ctx.event(AGENT, `Pexels API không khả dụng cho "${kw}": ${err.message}`, { level: 'warning' });
+      }
+    }
+    return [];
+  }
 
+  try {
+    // Tìm ứng viên cho từng từ khóa một lần.
+    const pools = new Map<string, Candidate[]>();
+    for (const kw of uniqueKeywords) pools.set(kw, await candidatesFor(kw));
+
+    // Chọn xoay vòng: mỗi vòng lấy tối đa 1 clip cho mỗi từ khóa, để các cảnh
+    // đa dạng thay vì lấy hết clip từ từ khóa đầu tiên.
+    let progressed = true;
+    while (picked.length < count && progressed) {
+      progressed = false;
+      for (const kw of uniqueKeywords) {
+        if (picked.length >= count) break;
+        const pool = pools.get(kw) || [];
+        while (pool.length > 0) {
+          const c = pool.shift()!;
+          if (used.includes(c.id) || picked.some((p) => p.id === c.id)) continue;
           const name = `clip_${picked.length}.mp4`;
           const dest = path.join(publicDir, name);
           try {
-            await pexels.download(f.link, dest);
-            picked.push({
-              id: item.id,
-              file: name,
-              author: item.user?.name,
-              url: item.url,
-              keyword: kw,
-              source: 'pexels',
-            });
-          } catch {}
+            if (c.source === 'pixabay') await pixabay.download(c.url, dest);
+            else await pexels.download(c.url, dest);
+          } catch {
+            continue;
+          }
+          picked.push({ id: c.id, file: name, author: c.author, url: c.page, keyword: kw, source: c.source });
+          progressed = true;
+          break;
         }
       }
     }

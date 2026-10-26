@@ -182,6 +182,7 @@ function plan(ctx: Ctx, now: Date | undefined, options: PlanOptions): number {
   const startDate = new Date(startRaw + 'T00:00:00Z');
 
   let created = 0;
+  const skipped: Record<string, number> = {};
   const days = options.horizonHours ? Math.ceil(options.horizonHours / 24) + 1 : s.schedule.queue_days;
   for (let offset = 0; offset < days; offset++) {
     const dayStr = addDays(nowLocalDate, offset);
@@ -217,11 +218,7 @@ function plan(ctx: Ctx, now: Date | undefined, options: PlanOptions): number {
       }
       const choice = pickIdea(ctx, slot.format, slotDate, options.priority);
       if (!choice) {
-        ctx.event(
-          AGENT,
-          `Không còn ý tưởng phù hợp cho ${slot.format} lúc ${dayStr} ${slot.time}`,
-          { level: 'warning' }
-        );
+        skipped[slot.format] = (skipped[slot.format] || 0) + 1;
         continue;
       }
 
@@ -262,6 +259,16 @@ function plan(ctx: Ctx, now: Date | undefined, options: PlanOptions): number {
     }
   }
 
+  const skippedEntries = Object.entries(skipped);
+  if (skippedEntries.length > 0) {
+    const detail = skippedEntries.map(([fmt, n]) => `${fmt} ×${n}`).join(', ');
+    ctx.event(
+      AGENT,
+      `Bỏ trống ${skippedEntries.reduce((a, [, n]) => a + n, 0)} slot vì thiếu ý tưởng phù hợp (${detail}). ` +
+        'Nạp thêm bài nguồn để lấp lịch.',
+      { level: 'warning' }
+    );
+  }
   ctx.event(AGENT, `Đã lên lịch ${created} video mới`);
   return created;
 }

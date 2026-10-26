@@ -29,11 +29,13 @@ beforeEach(() => {
   ctx.db.setKv(AUTOMATION_KEY, { enabled: true, dailyLimit: 3 });
   vi.useFakeTimers();
   vi.setSystemTime(now);
-  vi.spyOn(LLM.prototype, 'gpt').mockImplementation(async (options) => {
+  const mockLlm = async (options: any) => {
     const input = JSON.parse(options.user);
     if (input.candidates) return options.schema.parse({ ideaIds: input.candidates.map((idea: { id: number }) => idea.id) });
     return options.schema.parse({ approved: true, reason: 'Fixture reviewed' });
-  });
+  };
+  vi.spyOn(LLM.prototype, 'gpt').mockImplementation(mockLlm);
+  vi.spyOn(LLM.prototype, 'geminiRun').mockImplementation(mockLlm);
 });
 afterEach(() => {
   ctx.db.close();
@@ -76,6 +78,7 @@ describe('idea identity and ingest history', () => {
     const response = [seed, { ...seed, angle: 'Ranh giới công việc', insight: 'Nói không với yêu cầu ngoài giờ' }];
     const llm = new LLM(ctx.settings);
     vi.spyOn(llm, 'gpt').mockResolvedValue({ ideas: [...response, response[1]] });
+    vi.spyOn(llm, 'geminiRun').mockResolvedValue({ ideas: [...response, response[1]] });
     const source: Article = {
       id: 'source', mach_slug: 'm', machSlug: 'm', mach_index: 1, machIndex: 1, mach_title: 'm',
       machTitle: 'm', number: 1, title: 'title', path: 'path', body: 'body', content_hash: 'new', contentHash: 'new',
@@ -261,9 +264,9 @@ describe('continuous automatic cycles', () => {
       angle: `Unique angle ${i}`, insight: `Unique insight ${i}`, quotes: [], metaphor: '',
       practice: '', question: 'Q?', emotion: 'calm', hook_seed: 'H', formats: ['goi-ten'],
     }));
-    const originalMock = vi.mocked(LLM.prototype.gpt).getMockImplementation()!;
-    const model = vi.mocked(LLM.prototype.gpt).mockImplementation(async (options) => {
-      if (options.system.includes('tách thành 4–6')) return options.schema.parse({ ideas: seeds });
+    const originalMock = vi.mocked(LLM.prototype.geminiRun).getMockImplementation()!;
+    const model = vi.mocked(LLM.prototype.geminiRun).mockImplementation(async (options) => {
+      if (typeof options.system === 'string' && options.system.includes('tách thành 4–6')) return options.schema.parse({ ideas: seeds });
       return originalMock(options);
     });
     await runAutomation(ctx);

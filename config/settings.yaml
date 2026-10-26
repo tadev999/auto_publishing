@@ -95,7 +95,7 @@ render:
 
 publish:
   platforms: [youtube] # Tạm thời chỉ upload YouTube; mở lại [instagram, tiktok, youtube] khi sẵn sàng
-  dry_run: true
+  dry_run: false
   instagram_graph_version: v23.0
   # Instagram has no API flag for AI labels, so the disclosure goes into the caption.
   instagram_ai_disclosure: "🎙️ Giọng đọc AI được tạo từ giọng thật của tác giả."

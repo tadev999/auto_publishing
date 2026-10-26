@@ -7,6 +7,7 @@ import * as planner from './agents/planner.js';
 import * as publisher from './agents/publisher.js';
 import { sameIdea, type IdeaIdentity } from './ideaIdentity.js';
 import { Settings } from './config.js';
+import { notify } from './integrations/telegram.js';
 
 import { automationSchema, type AutomationConfig } from './automationConfig.js';
 export * from './automationConfig.js';
@@ -127,6 +128,7 @@ export async function runAutomation(ctx: Ctx): Promise<void> {
       const message = error instanceof Error ? error.message : String(error);
       blockAutomation(ctx, message);
       ctx.event('automation', message, { level: 'error', phase: 'failed' });
+      await notify(ctx.settings, `🚨 [Endogenism Studio - Cảnh Báo]\nTự động vận hành tạm dừng:\n${message}\n\nHệ thống đã chuyển sang chế độ Khóa An Toàn (Blocked).`);
       throw error;
     }
   });

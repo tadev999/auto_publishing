@@ -53,8 +53,8 @@ export function deterministicChecks(ctx: Ctx, video: any, script: Script): strin
   if (words > hi * 1.15) {
     issues.push(`Script dài ${words} từ, vượt mục tiêu ${lo}–${hi} từ. Cắt bớt beat yếu nhất.`);
   }
-  if (words < lo * 0.8) {
-    issues.push(`Script chỉ ${words} từ, ngắn hơn mục tiêu ${lo}–${hi} từ.`);
+  if (words < Math.round(lo * 0.95)) {
+    issues.push(`Script chỉ có ${words} từ, quá ngắn so với mục tiêu tối thiểu ${lo} từ (sẽ làm video dưới ${fmt.duration[0]}s và bị QA từ chối). Cần mở rộng thêm chi tiết, diễn giải hoặc bước thực hành.`);
   }
   const hookStyles = new Set(script.hooks.map((h) => h.style));
   if (hookStyles.size < 3) {

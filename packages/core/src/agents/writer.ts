@@ -5,7 +5,7 @@ import { LLM } from '../llm.js';
 import { Script, ScriptSchema } from '../schemas.js';
 
 export const AGENT = 'writer';
-export const WORDS_PER_SECOND = 2.4;
+export const WORDS_PER_SECOND = 2.7;
 
 export const ROLE = `Bạn là người viết kịch bản video ngắn (Reels/TikTok) cho dự án Endogenism, viết bằng giọng của chính tác giả.
 Bạn nhận một ý tưởng đã được tách từ bài viết gốc, cùng toàn văn bài viết.
@@ -16,7 +16,7 @@ Yêu cầu bắt buộc:
 - Đúng 3 hook, 3 style khác nhau. Phần thân phải nối tự nhiên với bất kỳ hook nào.
 - Ưu tiên dùng câu chữ, ẩn dụ của bài gốc. Không bịa số liệu, nghiên cứu hay trích dẫn.
 - Viết để ĐỌC THÀNH TIẾNG: câu ngắn, không ký hiệu, không emoji, không viết tắt.
-- Độ dài tổng (hook + beats) nằm trong khoảng số từ mục tiêu.
+- ĐỘ DÀI BẮT BUỘC: Tổng số từ (hook + beats) PHẢI nằm trong khoảng số từ mục tiêu, ưu tiên nửa trên của khoảng để đảm bảo thời lượng video đạt chuẩn khi đọc thành tiếng. Tuyệt đối không viết ngắn dưới mức tối thiểu.
 - caption và hashtags theo skill short-form-retention.`;
 
 export function targetWords(duration: [number, number]): [number, number] {
@@ -47,7 +47,8 @@ export function userPrompt(
   };
 
   const parts = [
-    `FORMAT: ${video.format} — ${fmt.label} — ${fmt.duration[0]}–${fmt.duration[1]} giây ≈ ${lo}–${hi} từ.`,
+    `FORMAT: ${video.format} — ${fmt.label} — Thời lượng bắt buộc: ${fmt.duration[0]}–${fmt.duration[1]} giây (tương đương ${lo}–${hi} từ). ` +
+    `LƯU Ý ĐỘ DÀI: Kịch bản (hook + beats) BẮT BUỘC phải đạt tối thiểu ${lo} từ (lý tưởng là khoảng ${Math.round((lo + hi) / 2)} từ). Tuyệt đối không viết dưới ${lo} từ vì giọng đọc AI sẽ bị dưới ${fmt.duration[0]} giây và bị QA đánh trượt.`,
     `Ý TƯỞNG:\n${JSON.stringify(ideaView, null, 2)}`,
   ];
 
@@ -98,8 +99,8 @@ export async function runOne(ctx: Ctx, llm: LLM, video: any): Promise<void> {
     system: systemPrompt,
     user: userPrompt(ctx, video, idea, body),
     schema: ScriptSchema,
-    maxTokens: 3000,
-    temperature: profile.temperature ?? 0.85,
+    maxTokens: 4000,
+    temperature: Math.min(profile.temperature ?? 0.7, 0.7),
   });
 
   const roundNo = (video.critic_rounds || 0) + 1;

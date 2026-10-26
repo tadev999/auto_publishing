@@ -60,6 +60,49 @@ function zodToJsonSchema(schema: z.ZodTypeAny): any {
   return { type: 'string' };
 }
 
+export function safeParseJson(raw: string): any {
+  if (!raw || typeof raw !== 'string') return {};
+  let text = raw.trim();
+
+  // Strip markdown code fences if present
+  if (text.startsWith('```')) {
+    text = text.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '').trim();
+  }
+
+  // Find boundaries of valid JSON root object or array
+  const firstBrace = text.indexOf('{');
+  const firstBracket = text.indexOf('[');
+  let startIdx = -1;
+  if (firstBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)) {
+    startIdx = firstBrace;
+  } else if (firstBracket !== -1) {
+    startIdx = firstBracket;
+  }
+
+  if (startIdx > 0) {
+    text = text.slice(startIdx);
+  }
+
+  const lastBrace = text.lastIndexOf('}');
+  const lastBracket = text.lastIndexOf(']');
+  const endIdx = Math.max(lastBrace, lastBracket);
+  if (endIdx !== -1 && endIdx < text.length - 1) {
+    text = text.slice(0, endIdx + 1);
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch (err) {
+    // Attempt recovery from trailing commas before closing braces/brackets
+    try {
+      const withoutTrailingCommas = text.replace(/,\s*([}\]])/g, '$1');
+      return JSON.parse(withoutTrailingCommas);
+    } catch {
+      throw err;
+    }
+  }
+}
+
 export class LLM {
   private _anthropic: Anthropic | null = null;
   private _openai: OpenAI | null = null;
@@ -115,6 +158,7 @@ export class LLM {
     maxTokens?: number;
   }): Promise<T> {
     if (requireModelProvider(opts.model) !== 'gemini') throw new Error('Gemini yêu cầu model ID bắt đầu bằng gemini-.');
+    const client = this.gemini;
     const systemArr = Array.isArray(opts.system) ? opts.system : [opts.system];
     const systemInstruction = systemArr.join('\n\n');
     const jsonSchema = zodToJsonSchema(opts.schema);
@@ -131,11 +175,11 @@ export class LLM {
       }
     }
 
-    const resp = await this.gemini.models.generateContent({
+    const resp = await client.models.generateContent({
       model: opts.model,
       contents: parts,
       config: {
-        httpOptions: { timeout: 12000 },
+        httpOptions: { timeout: 120000 },
         systemInstruction: systemInstruction || undefined,
         temperature: opts.temperature ?? 0.7,
         maxOutputTokens: opts.maxTokens,
@@ -143,7 +187,7 @@ export class LLM {
         responseSchema: jsonSchema,
       },
     });
-    return opts.schema.parse(JSON.parse(resp.text || '{}'));
+    return opts.schema.parse(safeParseJson(resp.text || '{}'));
   }
 
   async claude<T>(opts: {
@@ -249,7 +293,7 @@ export class LLM {
         });
 
         const raw = resp.choices[0]?.message?.content || '{}';
-        const parsed = JSON.parse(raw);
+        const parsed = safeParseJson(raw);
         return opts.schema.parse(parsed);
       } catch (err) {
         lastError = err;
