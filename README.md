@@ -9,6 +9,12 @@ Hệ thống AI agents biến **150 bài viết Endogenism (Nội Sinh)** thành
 
 Kế hoạch chi tiết: [PLAN.md](PLAN.md).
 
+## Xem nhanh
+
+*Bản ghi demo offline từ giao diện thật; đoạn chờ dựng video đã được rút ngắn. Demo không gọi AI hoặc đăng bài thật. Cảnh báo thiếu API key thuộc chế độ tự động, không ngăn chạy demo.*
+
+![Demo Endogenism Studio: bấm Chạy demo và theo dõi 5 agent xử lý lần lượt cùng nhật ký trực tiếp](assets/demo.webp)
+
 ## Bắt đầu ở đâu?
 
 - [Cài đặt và mở dashboard](#cài-đặt-máy-cá-nhân)
