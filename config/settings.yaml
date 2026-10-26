@@ -23,10 +23,10 @@ voice:
   # Vietnamese is supported by the v2.5 / v3 model families, not by multilingual_v2.
   model_id: eleven_turbo_v2_5
   language_code: vi
-  stability: 0.55
+  stability: 0.70
   similarity_boost: 0.8
   style: 0.0
-  speed: 0.95
+  speed: 0.88
 
 schedule:
   queue_days: 7

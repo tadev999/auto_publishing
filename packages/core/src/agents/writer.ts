@@ -5,18 +5,19 @@ import { LLM } from '../llm.js';
 import { Script, ScriptSchema } from '../schemas.js';
 
 export const AGENT = 'writer';
-export const WORDS_PER_SECOND = 2.7;
+export const WORDS_PER_SECOND = 2.0;
 
 export const ROLE = `Bạn là người viết kịch bản video ngắn (Reels/TikTok) cho dự án Endogenism, viết bằng giọng của chính tác giả.
 Bạn nhận một ý tưởng đã được tách từ bài viết gốc, cùng toàn văn bài viết.
 
-Yêu cầu bắt buộc:
+Phong cách đặc trưng của Endogenism:
+- CHẬM RÃI, CHẮC CHẮN, GIÀU KHOẢNG LẶNG: Câu chữ đằm thấu, buông từng câu có sức nặng. Giữa các beat có nhịp thở để người nghe ngấm và tự soi chiếu. Không nói nhanh, không dồn dập, không nhồi nhét.
 - Tuân thủ tuyệt đối LUẬT CỨNG của Endogenism.
 - Viết đúng cấu trúc beats của format được giao. \`beats\` KHÔNG chứa hook (hook nằm riêng trong \`hooks\`).
 - Đúng 3 hook, 3 style khác nhau. Phần thân phải nối tự nhiên với bất kỳ hook nào.
 - Ưu tiên dùng câu chữ, ẩn dụ của bài gốc. Không bịa số liệu, nghiên cứu hay trích dẫn.
-- Viết để ĐỌC THÀNH TIẾNG: câu ngắn, không ký hiệu, không emoji, không viết tắt.
-- ĐỘ DÀI BẮT BUỘC: Tổng số từ (hook + beats) PHẢI nằm trong khoảng số từ mục tiêu, ưu tiên nửa trên của khoảng để đảm bảo thời lượng video đạt chuẩn khi đọc thành tiếng. Tuyệt đối không viết ngắn dưới mức tối thiểu.
+- Viết để ĐỌC THÀNH TIẾNG: câu ngắn, không ký hiệu, không emoji, không viết tắt. Dấu chấm, dấu phẩy phân tách nhịp thở rõ ràng.
+- ĐỘ DÀI: Tổng số từ (hook + beats) nằm trong khoảng số từ mục tiêu (tính theo nhịp đọc chậm rãi ~2 từ/giây). Đạt mức tối thiểu để video đủ thời lượng.
 - caption và hashtags theo skill short-form-retention.`;
 
 export function targetWords(duration: [number, number]): [number, number] {
@@ -47,8 +48,8 @@ export function userPrompt(
   };
 
   const parts = [
-    `FORMAT: ${video.format} — ${fmt.label} — Thời lượng bắt buộc: ${fmt.duration[0]}–${fmt.duration[1]} giây (tương đương ${lo}–${hi} từ). ` +
-    `LƯU Ý ĐỘ DÀI: Kịch bản (hook + beats) BẮT BUỘC phải đạt tối thiểu ${lo} từ (lý tưởng là khoảng ${Math.round((lo + hi) / 2)} từ). Tuyệt đối không viết dưới ${lo} từ vì giọng đọc AI sẽ bị dưới ${fmt.duration[0]} giây và bị QA đánh trượt.`,
+    `FORMAT: ${video.format} — ${fmt.label} — Thời lượng: ${fmt.duration[0]}–${fmt.duration[1]} giây (tương đương ${lo}–${hi} từ khi đọc chậm, đằm thấu). ` +
+    `LƯU Ý NHỊP ĐIỆU & ĐỘ DÀI: Giọng đọc AI được cài đặt ở chế độ đọc chậm rãi, trầm chắc và có khoảng ngắt nghỉ sâu (~2 từ/giây). Kịch bản (hook + beats) cần đạt từ ${lo}–${hi} từ (lý tưởng là khoảng ${Math.round((lo + hi) / 2)} từ, tối thiểu không dưới ${lo} từ). Câu văn gãy gọn, có nhịp thở, không vội vã.`,
     `Ý TƯỞNG:\n${JSON.stringify(ideaView, null, 2)}`,
   ];
 
