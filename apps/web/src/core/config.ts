@@ -9,7 +9,7 @@ export const INITIAL_AGENTS: StudioAgent[] = [
     title: 'Trưởng Ban Nội Dung',
     department: 'Team Nội Dung',
     deskId: 'desk-planner',
-    color: '#06b6d4',
+    color: '#0e7490',
     status: 'idle',
     statusIcon: '📚',
     thought: 'Tách ý tưởng độc lập và ưu tiên đề tài cho lịch sản xuất.',
@@ -22,7 +22,7 @@ export const INITIAL_AGENTS: StudioAgent[] = [
     title: 'Biên Kịch',
     department: 'Team Nội Dung',
     deskId: 'desk-writer',
-    color: '#10b981',
+    color: '#059669',
     status: 'idle',
     statusIcon: '✍️',
     thought: 'Viết ba hook và kịch bản bám sát một ý tưởng từ bài nguồn.',
@@ -35,7 +35,7 @@ export const INITIAL_AGENTS: StudioAgent[] = [
     title: 'Tổng Biên Tập',
     department: 'Team Nội Dung',
     deskId: 'desk-critic',
-    color: '#a855f7',
+    color: '#9333ea',
     status: 'idle',
     statusIcon: '⚖️',
     thought: 'Duyệt kịch bản và kiểm định hình ảnh trước khi phát hành.',
@@ -48,7 +48,7 @@ export const INITIAL_AGENTS: StudioAgent[] = [
     title: 'Kỹ Sư Sản Xuất',
     department: 'Team Nội Dung',
     deskId: 'desk-producer',
-    color: '#eab308',
+    color: '#b45309',
     status: 'idle',
     statusIcon: '🎬',
     thought: 'Chọn hướng hình ảnh, nhạc nền và dựng video từ kịch bản đã duyệt.',
@@ -61,7 +61,7 @@ export const INITIAL_AGENTS: StudioAgent[] = [
     title: 'Điều Phối Phát Hành',
     department: 'Team Nội Dung',
     deskId: 'desk-publisher',
-    color: '#f472b6',
+    color: '#db2777',
     status: 'idle',
     statusIcon: '🚀',
     thought: 'Rà soát metadata và phát hành theo nền tảng, giờ đăng đã cấu hình.',
@@ -70,11 +70,11 @@ export const INITIAL_AGENTS: StudioAgent[] = [
 
 // Cả team dùng chung một phòng, ba bàn phía trên và hai bàn phía dưới.
 export const DESKS: Desk[] = [
-  { id: 'desk-planner', label: 'Điều phối nội dung', role: 'planner', tx: 3, ty: 6, color: 0x06b6d4 },
-  { id: 'desk-writer', label: 'Biên kịch', role: 'writer', tx: 10, ty: 6, color: 0x10b981 },
-  { id: 'desk-critic', label: 'Biên tập', role: 'critic', tx: 17, ty: 6, color: 0xa855f7 },
-  { id: 'desk-producer', label: 'Sản xuất', role: 'producer', tx: 7, ty: 12, color: 0xeab308 },
-  { id: 'desk-publisher', label: 'Phát hành', role: 'publisher', tx: 13, ty: 12, color: 0xf472b6 },
+  { id: 'desk-planner', label: 'Điều phối nội dung', role: 'planner', tx: 3, ty: 6, color: 0x0e7490 },
+  { id: 'desk-writer', label: 'Biên kịch', role: 'writer', tx: 10, ty: 6, color: 0x059669 },
+  { id: 'desk-critic', label: 'Biên tập', role: 'critic', tx: 17, ty: 6, color: 0x9333ea },
+  { id: 'desk-producer', label: 'Sản xuất', role: 'producer', tx: 7, ty: 12, color: 0xb45309 },
+  { id: 'desk-publisher', label: 'Phát hành', role: 'publisher', tx: 13, ty: 12, color: 0xdb2777 },
 ];
 
 const EVENT_TASKS: Record<string, string> = {
@@ -92,6 +92,6 @@ export function eventAgentMeta(agent: string) {
   return {
     name: desk?.label || member?.name || 'Hệ thống',
     task: EVENT_TASKS[key] || agent,
-    color: member?.color || '#38bdf8',
+    color: member ? `var(--agent-${member.role})` : 'var(--accent-blue)',
   };
 }

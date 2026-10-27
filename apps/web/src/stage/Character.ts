@@ -87,7 +87,7 @@ export class Character {
   private blinking = false;
   private glasses: boolean;
 
-  constructor(agent: StudioAgent, colorHex: number) {
+  constructor(agent: StudioAgent, colorHex: number, shadow = { color: 0x1f2328, alpha: 0.14 }) {
     this.id = agent.id;
     this.color = colorHex;
     this.role = agent.role;
@@ -108,7 +108,7 @@ export class Character {
     });
 
     // Bóng đổ
-    this.shadow.ellipse(0, 0, 12, 4).fill({ color: 0x000000, alpha: 0.28 });
+    this.shadow.ellipse(0, 0, 12, 4).fill(shadow);
     this.root.addChild(this.shadow);
 
     // Chân + giày

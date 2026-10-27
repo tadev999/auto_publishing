@@ -24,6 +24,15 @@ export const seatTile = (desk: Desk): Pt => ({ x: desk.tx, y: desk.ty - 1 });
 export const visitorTile = (desk: Desk): Pt => ({ x: desk.tx + 1, y: desk.ty + 2 });
 export const COFFEE_SEATS: Pt[] = [{ x: COFFEE_X, y: 9 }, { x: COFFEE_X + 3, y: 9 }];
 export const COFFEE_TILE: Pt = { x: COFFEE_X + 1, y: 6 };
+const block = (xs: number[], ys: number[]) => xs.flatMap((x) => ys.map((y) => ({ x, y })));
+// Floor decorations that characters walk around.
+export const DECOR_TILES: Pt[] = [
+  ...block([2, 3], [13, 14]),
+  ...block([18, 19], [13, 14]),
+  { x: COFFEE_X, y: 12 },
+  { x: COFFEE_X + 3, y: 12 },
+  ...block([COFFEE_X + 1, COFFEE_X + 2, COFFEE_X + 3], [14]),
+];
 
 export function buildGrid(): boolean[][] {
   const grid = Array.from({ length: ROWS }, (_, y) =>
@@ -40,5 +49,6 @@ export function buildGrid(): boolean[][] {
     grid[9][x] = true;
     grid[10][x] = true;
   }
+  for (const tile of DECOR_TILES) grid[tile.y][tile.x] = true;
   return grid;
 }

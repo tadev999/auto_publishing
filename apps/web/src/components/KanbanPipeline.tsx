@@ -11,17 +11,17 @@ export default function KanbanPipeline({ videos, onSelectVideo, onClose }: Kanba
   const getFormatBadge = (fmt: string) => {
     switch (fmt) {
       case 'goi-ten':
-        return { label: 'Gọi tên', color: '#06b6d4' };
+        return { label: 'Gọi tên', color: 'var(--accent-cyan)' };
       case 'cau-hoi':
-        return { label: 'Câu hỏi', color: '#3b82f6' };
+        return { label: 'Câu hỏi', color: 'var(--accent-blue)' };
       case 'ngo-nhan':
-        return { label: 'Ngộ nhận', color: '#a855f7' };
+        return { label: 'Ngộ nhận', color: 'var(--accent-purple)' };
       case 'thuc-hanh':
-        return { label: 'Thực hành', color: '#10b981' };
+        return { label: 'Thực hành', color: 'var(--accent-green)' };
       case 'doc-cham':
-        return { label: 'Đọc chậm', color: '#f59e0b' };
+        return { label: 'Đọc chậm', color: 'var(--accent-yellow)' };
       default:
-        return { label: fmt, color: '#64748b' };
+        return { label: fmt, color: 'var(--text-muted)' };
     }
   };
 
@@ -90,7 +90,7 @@ export default function KanbanPipeline({ videos, onSelectVideo, onClose }: Kanba
               >
                 <div className="card-top">
                   <span className="video-num">#{v.id}</span>
-                  <span className="badge-format" style={{ backgroundColor: `${fmt.color}22`, color: fmt.color }}>
+                  <span className="badge-format" style={{ backgroundColor: `color-mix(in srgb, ${fmt.color} 14%, transparent)`, color: fmt.color }}>
                     {fmt.label} #{v.episode}
                   </span>
                   <span className={`badge-status ${st.cls}`}>{st.label}</span>

@@ -62,7 +62,7 @@ export default function VideoDetailModal({ video, onClose, onPublish }: VideoDet
                 {isPublishable && onPublish && (
                   <button
                     className="btn btn-secondary"
-                    style={{ borderColor: '#22c55e', color: '#86efac', background: 'rgba(34, 197, 94, 0.15)' }}
+                    style={{ borderColor: 'var(--success-fg)', color: 'var(--success-fg)', background: 'rgba(34, 197, 94, 0.15)' }}
                     onClick={() => {
                       onPublish(video.id);
                       onClose();
@@ -80,30 +80,30 @@ export default function VideoDetailModal({ video, onClose, onPublish }: VideoDet
             <div className="section">
               <h4>🚀 Kênh Phân Phối & Phát Hành (Điều Phối Phát Hành)</h4>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
-                <div style={{ background: '#0e1726', border: '1px solid rgba(34, 197, 94, 0.25)', borderRadius: '8px', padding: '12px' }}>
+                <div style={{ background: 'var(--bg-dark)', border: '1px solid rgba(34, 197, 94, 0.25)', borderRadius: '8px', padding: '12px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                    <span style={{ color: '#22c55e', fontWeight: 600 }}>🎵 TikTok (@noisinh.vn)</span>
-                    <span style={{ fontSize: '11px', background: '#22c55e22', color: '#86efac', padding: '2px 8px', borderRadius: '12px' }}>
+                    <span style={{ color: 'var(--success-fg)', fontWeight: 600 }}>🎵 TikTok (@noisinh.vn)</span>
+                    <span style={{ fontSize: '11px', background: '#22c55e22', color: 'var(--success-fg)', padding: '2px 8px', borderRadius: '12px' }}>
                       {video.status === 'published' ? 'Đã lên sóng' : 'Đang xử lý'}
                     </span>
                   </div>
-                  <div style={{ fontSize: '11px', color: '#94a3b8' }}>Khung giờ vàng: 19:30 tối (Đỉnh điểm Retention)</div>
-                  <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>ID bài đăng: <b>tt_{video.id}_live</b> · Âm thanh gốc</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Khung giờ vàng: 19:30 tối (Đỉnh điểm Retention)</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>ID bài đăng: <b>tt_{video.id}_live</b> · Âm thanh gốc</div>
                 </div>
 
-                <div style={{ background: '#0e1726', border: '1px solid rgba(225, 48, 108, 0.25)', borderRadius: '8px', padding: '12px' }}>
+                <div style={{ background: 'var(--bg-dark)', border: '1px solid rgba(225, 48, 108, 0.25)', borderRadius: '8px', padding: '12px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                    <span style={{ color: '#f43f5e', fontWeight: 600 }}>📸 Instagram Reels (@noisinh.vn)</span>
-                    <span style={{ fontSize: '11px', background: '#f43f5e22', color: '#fda4af', padding: '2px 8px', borderRadius: '12px' }}>
+                    <span style={{ color: 'var(--danger-fg)', fontWeight: 600 }}>📸 Instagram Reels (@noisinh.vn)</span>
+                    <span style={{ fontSize: '11px', background: '#f43f5e22', color: 'var(--danger-fg)', padding: '2px 8px', borderRadius: '12px' }}>
                       {video.status === 'published' ? 'Đã lên sóng' : 'Đang xử lý'}
                     </span>
                   </div>
-                  <div style={{ fontSize: '11px', color: '#94a3b8' }}>Tỉ lệ khung hình: 9:16 Safe-Zone Phụ đề</div>
-                  <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>ID Reels: <b>ig_{video.id}_reels</b> · Full HD 1080p</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Tỉ lệ khung hình: 9:16 Safe-Zone Phụ đề</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>ID Reels: <b>ig_{video.id}_reels</b> · Full HD 1080p</div>
                 </div>
               </div>
 
-              <div style={{ marginTop: '10px', padding: '10px 14px', background: 'rgba(34, 197, 94, 0.08)', border: '1px dashed rgba(34, 197, 94, 0.3)', borderRadius: '8px', fontSize: '12px', color: '#86efac' }}>
+              <div style={{ marginTop: '10px', padding: '10px 14px', background: 'rgba(34, 197, 94, 0.08)', border: '1px dashed rgba(34, 197, 94, 0.3)', borderRadius: '8px', fontSize: '12px', color: 'var(--success-fg)' }}>
                 📊 <b>Giám Sát Số Liệu (Analytics):</b> Đang kích hoạt bot theo dõi Tỷ lệ giữ chân người xem 3 giây đầu (Hook Retention) và Tỷ lệ hoàn thành video sau 24h.
               </div>
             </div>

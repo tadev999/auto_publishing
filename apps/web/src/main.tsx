@@ -9,5 +9,7 @@ import '@fontsource/jetbrains-mono/400.css';
 import '@fontsource/jetbrains-mono/500.css';
 import '@fontsource/jetbrains-mono/600.css';
 import './index.css';
+import { initTheme } from './core/theme';
 
+initTheme();
 ReactDOM.createRoot(document.getElementById('root')!).render(<App />);

@@ -5,8 +5,9 @@ import { Character } from '../stage/Character';
 import { DESKS, INITIAL_AGENTS } from './config';
 import { agentIndicator } from './agentIndicator';
 import {
-  COFFEE_SEATS, COFFEE_TILE, COLS, ROWS, TILE, VIEW_TOP, buildGrid, seatPixel, seatTile, visitorTile,
+  COFFEE_SEATS, COFFEE_TILE, COLS, DECOR_TILES, ROWS, TILE, VIEW_TOP, buildGrid, seatPixel, seatTile, visitorTile,
 } from '../stage/studioMap';
+import { officePalette } from '../stage/officeTheme';
 import { findPath } from '../stage/pathfinding';
 
 describe('shared team office', () => {
@@ -84,6 +85,24 @@ describe('shared team office', () => {
     };
     expect(centre(12)).toBe(centre(6));
     for (const desk of DESKS) expect(seatPixel(desk).y - 124).toBeGreaterThanOrEqual(VIEW_TOP);
+  });
+  it('places floor decorations inside the room without covering seats, visitor spots or the coffee corner', () => {
+    const reserved = [COFFEE_TILE, ...COFFEE_SEATS, ...DESKS.flatMap((desk) => [seatTile(desk), visitorTile(desk)])];
+    for (const tile of DECOR_TILES) {
+      expect(tile.x).toBeGreaterThan(0);
+      expect(tile.x).toBeLessThan(COLS - 1);
+      expect(tile.y).toBeLessThan(ROWS - 1);
+      expect(reserved.some((spot) => spot.x === tile.x && spot.y === tile.y)).toBe(false);
+      expect(buildGrid()[tile.y][tile.x]).toBe(true);
+    }
+  });
+  it('uses distinct, readable status colors in both themes', () => {
+    for (const theme of ['light', 'dark'] as const) {
+      const colors = ['working', 'idle', 'rejected'].map((status) => agentIndicator(status as 'idle', undefined, theme).color);
+      expect(new Set(colors).size).toBe(3);
+    }
+    expect(agentIndicator('idle', undefined, 'dark').color).not.toBe(agentIndicator('idle', undefined, 'light').color);
+    expect(Object.keys(officePalette('dark'))).toEqual(Object.keys(officePalette('light')));
   });
   it('provides one clear workstation per character with room for overhead labels', () => {
     expect(DESKS).toHaveLength(INITIAL_AGENTS.length);

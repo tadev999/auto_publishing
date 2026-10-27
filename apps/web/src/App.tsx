@@ -167,7 +167,7 @@ export default function App() {
       />
       {apiError && (
         <div role="alert" style={{ position: 'fixed', top: 76, left: '10%', right: '10%', zIndex: 10000,
-          padding: 16, background: '#451a1a', color: '#fecaca', border: '1px solid #ef4444', borderRadius: 8 }}>
+          padding: 16, background: 'var(--danger-bg)', color: 'var(--danger-strong)', border: '1px solid var(--danger-border)', borderRadius: 8 }}>
           {apiError}
           <button className="btn-close" onClick={() => setApiError(null)} aria-label="Đóng thông báo">×</button>
         </div>

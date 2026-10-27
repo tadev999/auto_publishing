@@ -75,7 +75,7 @@ export default function ResetConfirmModal({ onClose, onSuccess }: ResetConfirmMo
               🛑
             </div>
             <div>
-              <h2 style={{ color: '#f87171', fontSize: 18, margin: 0 }}>
+              <h2 style={{ color: 'var(--danger-fg)', fontSize: 18, margin: 0 }}>
                 Dừng Agent & Reset Database
               </h2>
               <p className="modal-subtitle" style={{ margin: '4px 0 0 0' }}>
@@ -96,10 +96,10 @@ export default function ResetConfirmModal({ onClose, onSuccess }: ResetConfirmMo
               marginBottom: 18,
             }}
           >
-            <div style={{ fontWeight: 600, color: '#fca5a5', marginBottom: 8, fontSize: 14 }}>
+            <div style={{ fontWeight: 600, color: 'var(--danger-fg)', marginBottom: 8, fontSize: 14 }}>
               ⚠️ Những tác vụ sẽ được thực hiện:
             </div>
-            <ul style={{ margin: 0, paddingLeft: 20, color: '#e2e8f0', fontSize: 13, lineHeight: '1.6' }}>
+            <ul style={{ margin: 0, paddingLeft: 20, color: 'var(--text-primary)', fontSize: 13, lineHeight: '1.6' }}>
               <li>
                 <b>Dừng khẩn cấp:</b> Ngắt toàn bộ tiến trình AI ngầm (Writer, Critic, Voice, Remotion, Publisher).
               </li>
@@ -122,12 +122,12 @@ export default function ResetConfirmModal({ onClose, onSuccess }: ResetConfirmMo
               gap: 10,
               padding: '12px 14px',
               borderRadius: 8,
-              background: 'rgba(255, 255, 255, 0.03)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
+              background: 'rgba(31, 35, 40, 0.03)',
+              border: '1px solid rgba(31, 35, 40, 0.12)',
               cursor: 'pointer',
               userSelect: 'none',
               fontSize: 13,
-              color: '#f1f5f9',
+              color: 'var(--text-primary)',
             }}
           >
             <input
@@ -148,9 +148,9 @@ export default function ResetConfirmModal({ onClose, onSuccess }: ResetConfirmMo
                 marginTop: 14,
                 padding: '10px 14px',
                 borderRadius: 8,
-                background: 'rgba(239, 68, 68, 0.2)',
-                border: '1px solid #ef4444',
-                color: '#fca5a5',
+                background: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid var(--danger-border)',
+                color: 'var(--danger-strong)',
                 fontSize: 13,
               }}
             >
@@ -166,7 +166,7 @@ export default function ResetConfirmModal({ onClose, onSuccess }: ResetConfirmMo
             justifyContent: 'space-between',
             alignItems: 'center',
             paddingTop: 16,
-            borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+            borderTop: '1px solid rgba(31, 35, 40, 0.12)',
           }}
         >
           <button

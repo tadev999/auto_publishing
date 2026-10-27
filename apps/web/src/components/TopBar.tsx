@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, type ReactNode } from 'react';
 import { store } from '../core/store';
+import { setTheme, useTheme } from '../core/theme';
 
 interface TopBarProps {
   automationStatus?: ReactNode;
@@ -20,6 +21,7 @@ interface TopBarProps {
 
 export default function TopBar(props: TopBarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const theme = useTheme();
   const menuRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const stats = store.get().stats;
@@ -77,6 +79,11 @@ export default function TopBar(props: TopBarProps) {
         </div>
       </div>
       <div className="topbar-right">
+        <button className="btn btn-secondary theme-toggle" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          aria-label={theme === 'dark' ? 'Chuyển sang giao diện sáng' : 'Chuyển sang giao diện tối'}
+          title={theme === 'dark' ? 'Giao diện sáng' : 'Giao diện tối'}>
+          <span aria-hidden="true">{theme === 'dark' ? '☀' : '☾'}</span>
+        </button>
         {props.onToggleTerminal && (
           <button className={`btn btn-secondary ${props.terminalOpen ? 'active' : ''}`}
             onClick={props.onToggleTerminal} aria-expanded={props.terminalOpen}>

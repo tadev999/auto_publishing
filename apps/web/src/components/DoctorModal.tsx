@@ -56,7 +56,7 @@ export default function DoctorModal({ onClose }: DoctorModalProps) {
         <div className="modal-body" style={{ maxHeight: '75vh', overflowY: 'auto' }}>
           {/* Visual Token Health Grid */}
           <div style={{ marginBottom: 18 }}>
-            <h4 style={{ margin: '0 0 10px 0', fontSize: 13, textTransform: 'uppercase', letterSpacing: 0.5, color: '#94a3b8' }}>
+            <h4 style={{ margin: '0 0 10px 0', fontSize: 13, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--text-muted)' }}>
               Trạng Thái Kết Nối API & Tokens
             </h4>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
@@ -86,14 +86,14 @@ export default function DoctorModal({ onClose }: DoctorModalProps) {
                           fontWeight: 700,
                           padding: '2px 6px',
                           borderRadius: 4,
-                          color: isOk ? '#22c55e' : '#f87171',
+                          color: isOk ? 'var(--success-fg)' : 'var(--danger-fg)',
                           background: isOk ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
                         }}
                       >
                         {isOk ? 'SẴN SÀNG' : 'THIẾU'}
                       </span>
                     </div>
-                    <div style={{ fontSize: 11, color: '#94a3b8', display: 'flex', justifyContent: 'space-between' }}>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between' }}>
                       <span>{info.label}</span>
                       <span style={{ fontFamily: 'monospace', opacity: 0.8 }}>{item?.preview || '—'}</span>
                     </div>
@@ -103,7 +103,7 @@ export default function DoctorModal({ onClose }: DoctorModalProps) {
             </div>
           </div>
 
-          <h4 style={{ margin: '0 0 8px 0', fontSize: 13, textTransform: 'uppercase', letterSpacing: 0.5, color: '#94a3b8' }}>
+          <h4 style={{ margin: '0 0 8px 0', fontSize: 13, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--text-muted)' }}>
             Chi Tiết Chẩn Đoán Terminal
           </h4>
           <pre className="terminal-box" style={{ maxHeight: 260 }}>{output}</pre>
