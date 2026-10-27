@@ -3,6 +3,7 @@ import { StudioStore } from './store';
 import { eventBus } from './eventBus';
 import { AGENT_ROLES, reduceActivity, type ActivitySnapshot } from '../../shared/activity';
 import type { StudioEvent } from './types';
+import type { ScheduleStatus } from '../../shared/api';
 
 const event = (id: number, agent: string, phase?: StudioEvent['phase'], message = agent): StudioEvent =>
   ({ id, agent, phase, message, ts: `2026-10-26T00:00:${String(id).padStart(2, '0')}Z`, level: 'info', video_id: 7 });
@@ -40,9 +41,11 @@ describe('authoritative agent activity', () => {
       const working = store.get().agents.filter((item) => item.status === 'working');
       expect(working.map((item) => item.id)).toEqual([AGENT_ROLES[agent]]);
       expect(working[0].thought).toContain('#7');
+      expect(working[0].activityStage).toBe(agent);
     }
     store.applyActivity(snapshot(9, events, null));
     expect(store.get().agents.every((agent) => agent.status === 'idle' && !agent.speech && !agent.statusIcon)).toBe(true);
+    expect(store.get().agents.every((agent) => !agent.activityStage)).toBe(true);
   });
   it('does not mark an agent working just because its result was logged', () => {
     const events = [event(1, 'writer', 'started'), event(2, 'writer', 'finished'), event(3, 'writer')];
@@ -65,6 +68,27 @@ describe('authoritative agent activity', () => {
     store.applyActivity({ ...snapshot(1, []), generation: 2 });
     store.applyActivity(snapshot(21, [event(3, 'publisher', 'started')]));
     expect(store.get().agents.every((agent) => agent.status === 'idle')).toBe(true);
+  });
+  it('marks only the agent of a blocked stage as needing attention while no job runs', () => {
+    const store = new StudioStore();
+    const blocked: ScheduleStatus = {
+      enabled: true, paused: false, serverTime: '2026-10-26T00:00:00Z', nextCheckAt: null, nextPublication: null,
+      dueCount: 0, pendingProduction: 0, activeCommand: null, lastError: null,
+      automation: { enabled: true, dailyLimit: 3, blocked: true, lastCycleAt: null, lastError: 'Missing secret OPENAI_API_KEY',
+        message: 'Cần kiểm tra', stage: 'writer', horizonHours: 24, checkIntervalSeconds: 60, dryRun: true,
+        platforms: ['youtube'], timezone: null },
+    };
+    store.get().schedule = blocked;
+    store.applyActivity(snapshot(1, [], null));
+    const byId = (id: string) => store.get().agents.find((agent) => agent.id === id)!;
+    expect(byId('writer')).toMatchObject({ status: 'rejected', activityStage: 'writer', thought: 'Missing secret OPENAI_API_KEY' });
+    expect(store.get().agents.filter((agent) => agent.status !== 'idle')).toHaveLength(1);
+    store.applyActivity(snapshot(2, [event(1, 'critic', 'started')]));
+    expect(byId('writer').status).toBe('idle');
+    expect(byId('critic').status).toBe('working');
+    store.get().schedule = { ...blocked, automation: { ...blocked.automation!, blocked: false, lastError: null } };
+    store.applyActivity(snapshot(3, [], null));
+    expect(store.get().agents.every((agent) => agent.status === 'idle' && !agent.activityStage)).toBe(true);
   });
   it('clears speech/icons and updates the canvas immediately on reset', () => {
     const store = new StudioStore();

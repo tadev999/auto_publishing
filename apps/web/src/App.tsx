@@ -8,6 +8,7 @@ import SettingsModal from './components/SettingsModal';
 import ResetConfirmModal from './components/ResetConfirmModal';
 import StageView from './components/StageView';
 import ScheduleNotice from './components/ScheduleNotice';
+import { nextRunLabel } from './core/schedule';
 import AutomationModal from './components/AutomationModal';
 import TopBar from './components/TopBar';
 import VideoDetailModal from './components/VideoDetailModal';
@@ -143,10 +144,13 @@ export default function App() {
     ? `[${eventAgentMeta(latestEvent.agent).name}] ${eventAgentMeta(latestEvent.agent).task} · ${latestEvent.message}`
     : 'Studio đang trong trạng thái sẵn sàng trực chiến.');
   const readyVideos = state.videos.filter((v) => v.status === 'rendered' || v.status === 'qa_passed' || v.status === 'published');
+  const nextRun = nextRunLabel(state.schedule, Date.now(), state.isRunningPipeline);
 
   return (
     <div className="studio-app">
       <TopBar
+        automationStatus={<ScheduleNotice schedule={state.schedule} fetchedAt={state.scheduleFetchedAt}
+          error={state.refreshError} running={state.isRunningPipeline} onOpenAutomation={() => setAutomationOpen(true)} />}
         onOpenDoctor={() => setDoctorOpen(true)}
         onOpenAutomation={() => setAutomationOpen(true)}
         onOpenSettings={() => setSettingsOpen(true)}
@@ -172,13 +176,11 @@ export default function App() {
       <main className={`studio-main full-hero ${terminalOpen ? 'with-live-panel' : ''}`}>
         {/* Khu vực Sân khấu chính */}
         <div className="stage-area">
-          <div className="workspace-header">
-            <h1><span aria-hidden="true">~/</span> team-office</h1>
-            <span className="workspace-pan-hint">Vuốt ngang để xem văn phòng</span>
-          </div>
-          <ScheduleNotice schedule={state.schedule} fetchedAt={state.scheduleFetchedAt}
+          <ScheduleNotice variant="alert" schedule={state.schedule} fetchedAt={state.scheduleFetchedAt}
             error={state.refreshError} running={state.isRunningPipeline} onOpenAutomation={() => setAutomationOpen(true)} />
-          <StageView />
+          <StageView>
+            {nextRun && <p className="office-next-run" role="status">{nextRun}</p>}
+          </StageView>
 
           {/* Ambient Floating Dock (Thanh dock nổi ở đáy sân khấu) */}
           <div className="ambient-floating-dock">

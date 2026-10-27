@@ -1,8 +1,8 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { StudioStage } from '../stage/StudioStage';
 import { reportError } from '../core/api';
 
-export default function StageView() {
+export default function StageView({ children }: { children?: ReactNode }) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -15,8 +15,9 @@ export default function StageView() {
   }, []);
 
   return (
-    <div className="stage-wrapper" tabIndex={0} role="region" aria-label="Văn phòng team; vuốt ngang trên màn hình nhỏ">
+    <div className="stage-wrapper" tabIndex={0} role="region" aria-label="Văn phòng team">
       <div className="stage-container" ref={containerRef} />
+      {children}
     </div>
   );
 }

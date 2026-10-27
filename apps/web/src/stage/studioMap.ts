@@ -2,10 +2,14 @@ import { DESKS } from '../core/config';
 import type { Desk } from '../core/types';
 
 export const TILE = 42;
-export const COLS = 29;
-export const ROWS = 15;
+export const COLS = 26;
+export const ROWS = 17;
 export const WORLD_W = COLS * TILE;
 export const WORLD_H = ROWS * TILE;
+export const ROOM_TOP = 100;
+// Rows above the room only hold overhead labels and speech bubbles.
+export const VIEW_TOP = 84;
+export const COFFEE_X = 21;
 
 export interface Pt { x: number; y: number }
 export type Facing = 'down' | 'up' | 'left' | 'right';
@@ -18,8 +22,8 @@ export const seatPixel = (desk: Desk): Pt => ({
 });
 export const seatTile = (desk: Desk): Pt => ({ x: desk.tx, y: desk.ty - 1 });
 export const visitorTile = (desk: Desk): Pt => ({ x: desk.tx + 1, y: desk.ty + 2 });
-export const COFFEE_SEATS: Pt[] = [{ x: 24, y: 9 }, { x: 27, y: 9 }];
-export const COFFEE_TILE: Pt = { x: 25, y: 6 };
+export const COFFEE_SEATS: Pt[] = [{ x: COFFEE_X, y: 9 }, { x: COFFEE_X + 3, y: 9 }];
+export const COFFEE_TILE: Pt = { x: COFFEE_X + 1, y: 6 };
 
 export function buildGrid(): boolean[][] {
   const grid = Array.from({ length: ROWS }, (_, y) =>
@@ -31,8 +35,8 @@ export function buildGrid(): boolean[][] {
       grid[desk.ty + 1][x] = true;
     }
   }
-  for (let x = 24; x <= 27; x++) grid[5][x] = true;
-  for (let x = 25; x <= 26; x++) {
+  for (let x = COFFEE_X; x <= COFFEE_X + 3; x++) grid[5][x] = true;
+  for (let x = COFFEE_X + 1; x <= COFFEE_X + 2; x++) {
     grid[9][x] = true;
     grid[10][x] = true;
   }

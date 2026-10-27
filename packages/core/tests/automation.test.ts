@@ -219,6 +219,7 @@ describe('continuous automatic cycles', () => {
     vi.mocked(pipeline.STAGES[0].handler).mockRejectedValue(new Error('Fixture model failure'));
     await expect(runAutomation(ctx)).rejects.toThrow('Fixture model failure');
     expect(automationState(ctx).blocked).toBe(true);
+    expect(automationState(ctx).stage).toBe(pipeline.STAGES[0].name);
     await runAutomation(ctx);
     expect(pipeline.STAGES[0].handler).toHaveBeenCalledTimes(1);
   });
@@ -290,6 +291,7 @@ describe('continuous automatic cycles', () => {
     await expect(publishVideo(ctx, ctx.db.video(vid), { preventDuplicates: true })).rejects.toThrow('Upload outcome unknown');
     expect(ctx.db.one<{ status: string }>('SELECT status FROM publications')?.status).toBe('review_required');
     await expect(runAutomation(ctx)).rejects.toThrow('chưa xác định');
+    expect(automationState(ctx).stage).toBe('publisher');
     expect(YouTube.prototype.uploadShort).toHaveBeenCalledTimes(1);
   });
 });

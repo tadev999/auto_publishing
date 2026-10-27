@@ -16,6 +16,8 @@ export interface AutomationState {
   lastCycleAt: string | null;
   lastError: string | null;
   blocked: boolean;
+  /** Pipeline stage that was running when automation blocked, if known. */
+  stage?: string | null;
 }
 export const AUTOMATION_KEY = 'automation';
 export const AUTOMATION_STATE_KEY = 'automation_state';
@@ -34,9 +36,9 @@ export function automationState(ctx: Pick<Ctx, 'db'>): AutomationState {
   });
 }
 
-export function blockAutomation(ctx: Pick<Ctx, 'db'>, error: string) {
+export function blockAutomation(ctx: Pick<Ctx, 'db'>, error: string, stage: string | null = null) {
   ctx.db.setKv(AUTOMATION_STATE_KEY, {
-    ...automationState(ctx), blocked: true, lastError: error, message: 'Cần kiểm tra lỗi trước khi tiếp tục.',
+    ...automationState(ctx), blocked: true, lastError: error, stage, message: 'Cần kiểm tra lỗi trước khi tiếp tục.',
   });
 }
 
@@ -49,9 +51,16 @@ export function localDay(now: Date, timezone: string): string {
 export async function runAutomation(ctx: Ctx): Promise<void> {
   const config = automationConfig(ctx);
   if (!config.enabled || automationState(ctx).blocked || ctx.db.getKv('paused', false)) return;
+  let stage: string | null = null;
+  const emit = ctx.event;
   ctx = { ...ctx, settings: new Settings({
     ...ctx.settings, publish: { ...ctx.settings.publish, platforms: config.platforms },
-  }) };
+  }), event: (agent, message, options, level) => {
+    const phase = typeof options === 'object' && options ? options.phase : undefined;
+    if (phase === 'started') stage = agent;
+    else if (phase === 'finished' && stage === agent) stage = null;
+    emit(agent, message, options, level);
+  } };
   const { acquired } = await withLock(ctx, 'automation', async () => {
     const now = new Date();
     const state = (message: string) => ctx.db.setKv(AUTOMATION_STATE_KEY, {
@@ -60,7 +69,10 @@ export async function runAutomation(ctx: Ctx): Promise<void> {
     try {
       state(`Đang kiểm tra hàng đợi và lịch trong ${config.horizonHours} giờ tới.`);
       const ambiguous = ctx.db.one<{ id: number }>(`SELECT id FROM publications WHERE status IN ('publishing', 'review_required') LIMIT 1`);
-      if (ambiguous) throw new Error(`Publication #${ambiguous.id} chưa xác định kết quả. Kiểm tra trên nền tảng trước khi tiếp tục; không tự đăng lại.`);
+      if (ambiguous) {
+        stage = 'publisher';
+        throw new Error(`Publication #${ambiguous.id} chưa xác định kết quả. Kiểm tra trên nền tảng trước khi tiếp tục; không tự đăng lại.`);
+      }
       ctx.event('publisher', 'Tự động kiểm tra phát hành đến lịch', { phase: 'started' });
       await publisher.run(ctx, now, { preventDuplicates: true });
       ctx.event('publisher', 'Hoàn tất kiểm tra phát hành', { phase: 'finished' });
@@ -68,7 +80,10 @@ export async function runAutomation(ctx: Ctx): Promise<void> {
         WHERE p.status IN ('pending', 'failed', 'review_required') AND p.error IS NOT NULL
           AND p.platform IN (${config.platforms.map(() => '?').join(',')})
           AND julianday(v.slot_at) <= julianday(?) LIMIT 1`, ...config.platforms, now.toISOString());
-      if (publishError) throw new Error(publishError.error);
+      if (publishError) {
+        stage = 'publisher';
+        throw new Error(publishError.error);
+      }
       const day = localDay(now, ctx.settings.timezone);
       const budgetKey = `automation_budget:${day}`;
       const budget = ctx.db.getKv(budgetKey, { production: 0, ingest: 0 });
@@ -106,11 +121,15 @@ export async function runAutomation(ctx: Ctx): Promise<void> {
       }
       if (target.error) throw new Error(`Video #${target.id}: ${target.error}. Cần kiểm tra trước khi tự chạy lại.`);
       const duplicate = ctx.db.one<{ id: number }>('SELECT id FROM videos WHERE idea_id = ? AND id != ? LIMIT 1', target.idea_id, target.id);
-      if (duplicate) throw new Error(`Ý tưởng của video #${target.id} đã được dùng ở #${duplicate.id}. Không tự sản xuất bản trùng.`);
+      if (duplicate) {
+        stage = 'planner';
+        throw new Error(`Ý tưởng của video #${target.id} đã được dùng ở #${duplicate.id}. Không tự sản xuất bản trùng.`);
+      }
       const identity = ctx.db.one<IdeaIdentity>('SELECT article_id, angle, insight FROM ideas WHERE id = ?', target.idea_id)!;
       const previous = ctx.db.all<IdeaIdentity>(`SELECT i.article_id, i.angle, i.insight FROM ideas i
         JOIN videos v ON v.idea_id = i.id WHERE v.id != ?`, target.id);
       if (previous.some((idea) => sameIdea(identity, idea))) {
+        stage = 'planner';
         throw new Error(`Video #${target.id} có ý tưởng trùng/gần trùng với lịch sử. Cần kiểm tra; không tự sản xuất.`);
       }
       if (budget.production >= config.dailyLimit) {
@@ -126,7 +145,7 @@ export async function runAutomation(ctx: Ctx): Promise<void> {
       state(`Video #${target.id} đã sẵn sàng; tiếp tục kiểm tra ở chu kỳ sau.`);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      blockAutomation(ctx, message);
+      blockAutomation(ctx, message, stage);
       ctx.event('automation', message, { level: 'error', phase: 'failed' });
       await notify(ctx.settings, `🚨 [Endogenism Studio - Cảnh Báo]\nTự động vận hành tạm dừng:\n${message}\n\nHệ thống đã chuyển sang chế độ Khóa An Toàn (Blocked).`);
       throw error;

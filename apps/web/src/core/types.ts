@@ -32,6 +32,7 @@ export interface StudioAgent {
   deskId: string;
   color: string;
   status: AgentStatus;
+  activityStage?: string;
   statusIcon?: string;
   thought?: string;
   speech?: string;

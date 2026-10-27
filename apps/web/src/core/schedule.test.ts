@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { ScheduleStatus } from '../../shared/api';
-import { countdown, scheduleSummary } from './schedule';
+import type { AutomationStatus, ScheduleStatus } from '../../shared/api';
+import { blockedAgent, countdown, nextRunLabel, scheduleSummary } from './schedule';
 
 const now = Date.parse('2026-10-26T00:00:00Z');
 const schedule: ScheduleStatus = {
@@ -41,5 +41,35 @@ describe('next agent activity', () => {
     expect(scheduleSummary({ ...automatic, automation: { ...automatic.automation!, blocked: true, lastError: 'Kiểm tra lỗi render' } }, now, false))
       .toMatchObject({ kind: 'warning', title: 'Tự động vận hành cần kiểm tra', detail: 'Kiểm tra lỗi render' });
     expect(scheduleSummary({ ...automatic, lastError: 'Worker not available' }, now, false).detail).toBe('Worker not available');
+  });
+  it('assigns a block to the agent of the failed stage, falling back to the coordinator', () => {
+    const automation: AutomationStatus = { enabled: true, dailyLimit: 3, blocked: true, lastCycleAt: null, lastError: 'Missing secret',
+      message: 'Cần kiểm tra', horizonHours: 24, checkIntervalSeconds: 60, dryRun: true, platforms: ['youtube'], timezone: null };
+    expect(blockedAgent({ ...schedule, automation: { ...automation, stage: 'render' } }))
+      .toEqual({ role: 'producer', stage: 'render', message: 'Missing secret' });
+    expect(blockedAgent({ ...schedule, automation: { ...automation, stage: 'ingest' } })?.role).toBe('planner');
+    expect(blockedAgent({ ...schedule, automation })).toMatchObject({ role: 'planner', stage: null });
+    expect(blockedAgent({ ...schedule, lastError: 'Scheduler down' })).toMatchObject({ role: 'planner', message: 'Scheduler down' });
+    expect(blockedAgent({ ...schedule, paused: true, automation })).toBeNull();
+    expect(blockedAgent({ ...schedule, automation: { ...automation, enabled: false } })).toBeNull();
+    expect(blockedAgent({ ...schedule, automation: { ...automation, blocked: false } })).toBeNull();
+  });
+  it('tells idle users when the team will act next, but stays quiet while working or blocked', () => {
+    const at = (minutes: number) => new Date(now + minutes * 60000).toISOString();
+    const time = (iso: string) => {
+      const date = new Date(iso);
+      return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+    };
+    expect(nextRunLabel(schedule, now, false)).toBe(`Kiểm tra tiếp theo lúc ${time(at(1))}`);
+    expect(nextRunLabel({ ...schedule, nextPublication: { id: 4, slotAt: at(30) } }, now, false))
+      .toBe(`Đăng video #4 lúc ${time(at(30))}`);
+    expect(nextRunLabel({ ...schedule, nextPublication: { id: 4, slotAt: at(-1) } }, now, false)).toBe('Video #4 đã đến giờ đăng');
+    expect(nextRunLabel({ ...schedule, nextPublication: { id: 4, slotAt: at(48 * 60) } }, now, false)).toMatch(/\d{2}:\d{2} · \d{2}\/\d{2}$/);
+    expect(nextRunLabel({ ...schedule, paused: true }, now, false)).toBe('Đã tạm dừng · chờ lệnh chạy');
+    expect(nextRunLabel({ ...schedule, enabled: false }, now, false)).toBe('Tự động đang tắt');
+    expect(nextRunLabel(schedule, now, true)).toBeNull();
+    expect(nextRunLabel({ ...schedule, lastError: 'boom' }, now, false)).toBeNull();
+    expect(nextRunLabel({ ...schedule, nextCheckAt: null }, now, false)).toBeNull();
+    expect(nextRunLabel(null, now, false)).toBeNull();
   });
 });

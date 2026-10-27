@@ -61,7 +61,7 @@ export const INITIAL_AGENTS: StudioAgent[] = [
     title: 'Điều Phối Phát Hành',
     department: 'Team Nội Dung',
     deskId: 'desk-publisher',
-    color: '#22c55e',
+    color: '#f472b6',
     status: 'idle',
     statusIcon: '🚀',
     thought: 'Rà soát metadata và phát hành theo nền tảng, giờ đăng đã cấu hình.',
@@ -70,11 +70,11 @@ export const INITIAL_AGENTS: StudioAgent[] = [
 
 // Cả team dùng chung một phòng, ba bàn phía trên và hai bàn phía dưới.
 export const DESKS: Desk[] = [
-  { id: 'desk-planner', label: INITIAL_AGENTS[0].name, role: 'planner', tx: 4, ty: 6, color: 0x06b6d4 },
-  { id: 'desk-writer', label: INITIAL_AGENTS[1].name, role: 'writer', tx: 11, ty: 6, color: 0x10b981 },
-  { id: 'desk-critic', label: INITIAL_AGENTS[2].name, role: 'critic', tx: 18, ty: 6, color: 0xa855f7 },
-  { id: 'desk-producer', label: INITIAL_AGENTS[3].name, role: 'producer', tx: 7, ty: 11, color: 0xeab308 },
-  { id: 'desk-publisher', label: INITIAL_AGENTS[4].name, role: 'publisher', tx: 14, ty: 11, color: 0x22c55e },
+  { id: 'desk-planner', label: 'Điều phối nội dung', role: 'planner', tx: 3, ty: 6, color: 0x06b6d4 },
+  { id: 'desk-writer', label: 'Biên kịch', role: 'writer', tx: 10, ty: 6, color: 0x10b981 },
+  { id: 'desk-critic', label: 'Biên tập', role: 'critic', tx: 17, ty: 6, color: 0xa855f7 },
+  { id: 'desk-producer', label: 'Sản xuất', role: 'producer', tx: 7, ty: 12, color: 0xeab308 },
+  { id: 'desk-publisher', label: 'Phát hành', role: 'publisher', tx: 13, ty: 12, color: 0xf472b6 },
 ];
 
 const EVENT_TASKS: Record<string, string> = {
@@ -88,8 +88,9 @@ const EVENT_TASKS: Record<string, string> = {
 export function eventAgentMeta(agent: string) {
   const key = agent.toLowerCase();
   const member = INITIAL_AGENTS.find((item) => item.role === AGENT_ROLES[key]);
+  const desk = DESKS.find((item) => item.role === AGENT_ROLES[key]);
   return {
-    name: member?.name || 'Hệ thống',
+    name: desk?.label || member?.name || 'Hệ thống',
     task: EVENT_TASKS[key] || agent,
     color: member?.color || '#38bdf8',
   };

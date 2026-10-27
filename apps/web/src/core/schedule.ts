@@ -1,4 +1,34 @@
 import type { ScheduleStatus } from '../../shared/api';
+import { AGENT_ROLES } from '../../shared/activity';
+
+export function blockedAgent(schedule: ScheduleStatus | null) {
+  if (!schedule || !schedule.enabled || schedule.paused) return null;
+  const automation = schedule.automation;
+  const automationBlocked = automation?.enabled && automation.blocked;
+  const message = schedule.lastError || (automationBlocked ? automation.lastError || automation.message : null);
+  if (!message) return null;
+  const stage = !schedule.lastError && automation?.stage || null;
+  // Unattributed blocks go to the coordinator, who owns scheduling.
+  return { role: stage && AGENT_ROLES[stage] || 'planner', stage, message };
+}
+
+export function nextRunLabel(schedule: ScheduleStatus | null, now: number, running: boolean): string | null {
+  if (!schedule || running || blockedAgent(schedule)) return null;
+  if (!schedule.enabled) return 'Tự động đang tắt';
+  if (schedule.paused) return 'Đã tạm dừng · chờ lệnh chạy';
+  const time = (iso: string) => {
+    const date = new Date(iso);
+    const pad = (value: number) => String(value).padStart(2, '0');
+    const clock = `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+    return date.toDateString() === new Date(now).toDateString() ? clock
+      : `${clock} · ${pad(date.getDate())}/${pad(date.getMonth() + 1)}`;
+  };
+  const next = schedule.nextPublication;
+  if (next) {
+    return Date.parse(next.slotAt) <= now ? `Video #${next.id} đã đến giờ đăng` : `Đăng video #${next.id} lúc ${time(next.slotAt)}`;
+  }
+  return schedule.nextCheckAt ? `Kiểm tra tiếp theo lúc ${time(schedule.nextCheckAt)}` : null;
+}
 
 export function scheduleSummary(schedule: ScheduleStatus, now: number, running: boolean) {
   if (running) return { kind: 'running', title: 'Đang xử lý tác vụ',

@@ -6,10 +6,13 @@ import { DESKS, INITIAL_AGENTS, eventAgentMeta } from './config';
 import EventTerminal from '../components/EventTerminal';
 
 describe('team titles across the office and logs', () => {
-  it('uses exactly the member title at every desk and for all mapped event stages', () => {
+  it('uses the same short labels in the office and logs while preserving full profile titles', () => {
+    const labels = ['Điều phối nội dung', 'Biên kịch', 'Biên tập', 'Sản xuất', 'Phát hành'];
+    expect(DESKS.map((desk) => desk.label)).toEqual(labels);
     for (const desk of DESKS) {
       const member = INITIAL_AGENTS.find((agent) => agent.role === desk.role)!;
-      expect(desk.label).toBe(member.name);
+      expect(member.title).toBe(member.name);
+      expect(desk.color).toBe(parseInt(member.color.slice(1), 16));
       for (const [stage, role] of Object.entries(AGENT_ROLES)) {
         if (role !== desk.role) continue;
         expect(eventAgentMeta(stage).name).toBe(desk.label);
@@ -17,6 +20,7 @@ describe('team titles across the office and logs', () => {
         expect(eventAgentMeta(stage).task).not.toBe(stage);
       }
     }
+    expect(new Set(INITIAL_AGENTS.map((member) => member.color)).size).toBe(INITIAL_AGENTS.length);
   });
   it('distinguishes stages of the same member and attributes unmapped events to the system', () => {
     expect(eventAgentMeta('ingest').name).toBe(eventAgentMeta('planner').name);
@@ -32,8 +36,10 @@ describe('team titles across the office and logs', () => {
       ],
       liveLogs: ['Server ready'],
     }));
-    expect(html).toContain('[Trưởng Ban Nội Dung]');
-    expect(html).toContain('[Điều Phối Phát Hành]');
+    expect(html).toContain('[Điều phối nội dung]');
+    expect(html).toContain('[Phát hành]');
+    expect(html).not.toContain('[Trưởng Ban Nội Dung]');
+    expect(html).not.toContain('[Điều Phối Phát Hành]');
     expect(html).toContain('Nạp ý tưởng');
     expect(html).toContain('Mã công đoạn: ingest');
     expect(html).toContain('[Hệ thống]');

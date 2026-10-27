@@ -1,7 +1,8 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, type ReactNode } from 'react';
 import { store } from '../core/store';
 
 interface TopBarProps {
+  automationStatus?: ReactNode;
   onOpenDoctor: () => void;
   onOpenSettings: () => void;
   onOpenSkills: () => void;
@@ -68,6 +69,7 @@ export default function TopBar(props: TopBarProps) {
           <span className="brand-title">endogenism<span className="brand-path"> / studio</span></span>
           <span className="brand-badge">workspace</span>
         </div>
+        {props.automationStatus}
         <div className="ambient-heartbeat">
           <span><b>{stats.planned}</b> lên lịch</span><span>·</span>
           <span><b>{stats.rendered}</b> đã dựng</span><span>·</span>

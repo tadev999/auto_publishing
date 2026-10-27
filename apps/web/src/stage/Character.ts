@@ -3,7 +3,7 @@ import type { AgentStatus, StudioAgent } from '../core/types';
 import { agentIndicator } from '../core/agentIndicator';
 import type { Facing, Pt } from './studioMap';
 
-const FONT = 'Be Vietnam Pro, Inter, system-ui, sans-serif';
+const FONT = 'Be Vietnam Pro';
 
 type HairStyle = 'short' | 'long' | 'bun' | 'spiky' | 'curly' | 'bob' | 'side';
 type Accessory = 'none' | 'glasses' | 'headphones' | 'cap' | 'beard' | 'tie';
@@ -19,15 +19,15 @@ interface Look {
 // Ngoại hình riêng cho từng vai trò để mỗi nhân vật dễ nhận ra
 const LOOKS: Record<string, Look> = {
   ingest: { skin: 0xf6d3b3, hair: 0x4a2f1b, style: 'long', pants: 0x334155, acc: [] },
-  planner: { skin: 0xe8b98f, hair: 0x1a1a1a, style: 'side', pants: 0x1f2937, acc: ['glasses', 'tie'] },
-  writer: { skin: 0xffe0c2, hair: 0x6b3e23, style: 'bun', pants: 0x3b2f2a, acc: [] },
+  planner: { skin: 0xe8b98f, hair: 0x1a1a1a, style: 'side', pants: 0x34363b, acc: ['glasses'] },
+  writer: { skin: 0xffe0c2, hair: 0x6b3e23, style: 'bun', pants: 0x35373b, acc: ['headphones'] },
   critic: { skin: 0xdca67c, hair: 0x9ca3af, style: 'short', pants: 0x1e293b, acc: ['glasses', 'beard'] },
   qa: { skin: 0xf3c9a5, hair: 0x111111, style: 'bob', pants: 0x1e3a5f, acc: [] },
   voice: { skin: 0xc68b5e, hair: 0x1f140d, style: 'spiky', pants: 0x111827, acc: ['headphones'] },
   visual: { skin: 0xf0c49c, hair: 0x2b1d14, style: 'curly', pants: 0x374151, acc: [] },
   render: { skin: 0xe0ac80, hair: 0x2b1d14, style: 'short', pants: 0x1f2937, acc: ['cap'] },
   producer: { skin: 0xc68b5e, hair: 0x1f140d, style: 'spiky', pants: 0x111827, acc: ['headphones'] },
-  publisher: { skin: 0xffdcbc, hair: 0xc8933f, style: 'long', pants: 0x334155, acc: [] },
+  publisher: { skin: 0xffdcbc, hair: 0xc8933f, style: 'long', pants: 0x34363b, acc: ['glasses'] },
   analytics: { skin: 0xb97a50, hair: 0x111111, style: 'short', pants: 0x3f3f46, acc: ['glasses'] },
 };
 
@@ -43,6 +43,7 @@ export type SitStyle = 'desk' | 'sofa';
 export class Character {
   readonly id: string;
   readonly root = new Container();
+  readonly overlay = new Container({ eventMode: 'none' });
   private body = new Container();
   private shadow = new Graphics();
   private legL = new Graphics();
@@ -73,6 +74,8 @@ export class Character {
   onArrive: (() => void) | null = null;
   private currentStatus: AgentStatus = 'idle';
   color: number;
+  activityStage?: string;
+  private role: StudioAgent['role'];
   facing: Facing = 'down';
   seated: SitStyle | null = null;
   busy = false; // đang đi dạo / làm việc ngoài bàn
@@ -87,6 +90,8 @@ export class Character {
   constructor(agent: StudioAgent, colorHex: number) {
     this.id = agent.id;
     this.color = colorHex;
+    this.role = agent.role;
+    this.activityStage = agent.activityStage;
     const look = LOOKS[agent.role] ?? LOOKS.ingest;
     this.glasses = look.acc.includes('glasses');
 
@@ -117,19 +122,21 @@ export class Character {
     this.body.addChild(this.legs);
 
     // Thân áo
-    const shirt = this.color;
+    const shirt = shade(this.color, 0.62);
     this.torso.roundRect(-10, -29, 20, 18, 6).fill(shirt);
     this.torso.roundRect(-10, -15, 20, 4, 2).fill(shade(shirt, 0.75)); // vạt áo/thắt lưng
     this.torso.roundRect(-10, -29, 20, 5, 4).fill({ color: 0xffffff, alpha: 0.12 }); // vai sáng
     this.body.addChild(this.torso);
 
     // Cổ áo (chỉ thấy khi quay mặt ra)
-    this.collar.poly([-4, -29, 4, -29, 0, -24]).fill(0xf8fafc);
+    this.collar.poly([-5, -29, 0, -25, 5, -29, 3, -21, -3, -21]).fill(shade(shirt, 0.7));
+    this.collar.moveTo(-2, -26).lineTo(-2, -20).moveTo(2, -26).lineTo(2, -20)
+      .stroke({ width: 0.8, color: 0xe0e4e8 });
     if (look.acc.includes('tie')) {
       this.collar.poly([-1.5, -25, 1.5, -25, 2.2, -17, 0, -15, -2.2, -17]).fill(0xb91c1c);
     } else {
-      this.collar.circle(0, -21, 1).fill({ color: 0xffffff, alpha: 0.6 });
-      this.collar.circle(0, -17.5, 1).fill({ color: 0xffffff, alpha: 0.6 });
+      this.collar.roundRect(-5, -18, 10, 4, 1).fill(shade(shirt, 0.8));
+      this.collar.rect(5, -24, 3, 2).fill(this.color);
     }
     this.body.addChild(this.collar);
 
@@ -147,6 +154,7 @@ export class Character {
     this.head.position.set(0, -38);
     this.body.addChild(this.head);
 
+    this.body.scale.set(1.5);
     this.root.addChild(this.body);
 
     // Mũi tên chọn nhân vật
@@ -155,20 +163,22 @@ export class Character {
       .fill(this.color)
       .stroke({ width: 1.5, color: 0xffffff });
     this.marker.visible = false;
-    this.root.addChild(this.marker);
+    this.overlay.addChild(this.marker);
 
     const dpr = Math.max(2, typeof window !== 'undefined' ? (window.devicePixelRatio || 2) : 2);
+    const statusFont = typeof document === 'undefined' ? ''
+      : getComputedStyle(document.documentElement).getPropertyValue('--font-mono').trim();
 
     this.activityText = new Text({
       text: '',
-      style: { fontFamily: FONT, fontSize: Math.round(11 * dpr), fontWeight: '800', fill: 0x6ee7b7 },
+      style: { fontFamily: statusFont || 'JetBrains Mono', fontSize: 11, fontWeight: '500', fill: 0x6ee7b7 },
+      resolution: dpr,
     });
-    this.activityText.scale.set(1 / dpr);
     this.activityText.anchor.set(0.5, 0.5);
-    this.activityText.position.set(7, 0);
+    this.activityText.position.set(5, 0);
     this.activityBadge.addChild(this.activityBackground, this.activityDot, this.activityText);
-    this.activityBadge.position.set(0, -77);
-    this.root.addChild(this.activityBadge);
+    this.activityBadge.position.set(0, -90);
+    this.overlay.addChild(this.activityBadge);
     this.status = agent.status;
 
     // Huy hiệu trạng thái
@@ -183,15 +193,15 @@ export class Character {
     this.icon.scale.set(1 / dpr);
     this.icon.anchor.set(0.5, 0.5);
     this.iconBadge.addChild(badgeBg, this.icon);
-    this.iconBadge.position.set(14, -50);
-    this.root.addChild(this.iconBadge);
+    this.iconBadge.position.set(27, -62);
+    this.overlay.addChild(this.iconBadge);
 
     // Bong bóng thoại
     this.bubbleText = new Text({
       text: '',
       style: {
         fontFamily: FONT,
-        fontSize: Math.round(11.5 * dpr),
+        fontSize: Math.round(13 * dpr),
         fill: 0x0f172a,
         fontWeight: '600',
         wordWrap: true,
@@ -202,7 +212,7 @@ export class Character {
     this.bubbleText.position.set(10, 7);
     this.bubble.addChild(this.bubbleBg, this.bubbleText);
     this.bubble.visible = false;
-    this.root.addChild(this.bubble);
+    this.overlay.addChild(this.bubble);
   }
 
   private buildHead(look: Look) {
@@ -366,18 +376,31 @@ export class Character {
 
   set status(status: AgentStatus) {
     this.currentStatus = status;
-    const indicator = agentIndicator(status);
+    const indicator = agentIndicator(status, this.activityStage || this.role);
     this.activityText.text = indicator.label;
     this.activityText.style.fill = indicator.color;
-    this.activityBackground.clear().roundRect(-57, -12, 114, 24, 12)
-      .fill(indicator.background).stroke({ color: indicator.color, width: 1.5, alpha: 0.85 });
-    this.activityDot.clear().circle(-42, 0, 3.5).fill(indicator.color);
+    const width = this.activityText.width + 28;
+    const emphasis = indicator.working || status === 'rejected';
+    this.activityBackground.clear();
+    this.activityBackground.visible = emphasis;
+    if (emphasis) {
+      this.activityBackground.roundRect(-width / 2, -11, width, 22, 4)
+        .fill({ color: indicator.background, alpha: 0.75 })
+        .stroke({ color: indicator.color, width: 1, alpha: 0.35 });
+    }
+    this.activityDot.clear().circle(-width / 2 + 9, 0, 2.5).fill(indicator.color);
     this.activityDot.alpha = 1;
     this.iconBadge.visible = indicator.working || status === 'rejected';
   }
 
   setIcon(icon: string) {
     this.icon.text = icon;
+  }
+
+  setLabelScale(scale: number) {
+    this.activityBadge.scale.set(scale);
+    // Grow upward so the larger badge never covers the head.
+    this.activityBadge.y = -79 - 11 * scale;
   }
 
   setSelected(selected: boolean) {
@@ -441,7 +464,7 @@ export class Character {
     }
 
     if (this.selected) this.marker.y = -124 + Math.sin(this.t * 2) * 3;
-    this.activityDot.alpha = agentIndicator(this.status).working ? 0.6 + Math.sin(this.t * 2) * 0.4 : 1;
+    this.activityDot.alpha = agentIndicator(this.status).working ? 0.6 + Math.sin(this.t * 2) * 0.4 : 0.6;
 
     if (this.path.length > 0) {
       if (this.seated) this.stand();
@@ -491,6 +514,8 @@ export class Character {
 
     this.root.position.set(this.x, this.y);
     this.root.zIndex = this.y;
+    this.overlay.position.copyFrom(this.root.position);
+    this.overlay.zIndex = this.y;
   }
 
   private resetPose() {

@@ -4,6 +4,7 @@ import { eventBus } from './eventBus';
 import { AGENT_ICONS, type ActivitySnapshot } from '../../shared/activity';
 import type { PipelineStats, StudioAgent, StudioEvent, VideoItem } from './types';
 import type { ScheduleStatus } from '../../shared/api';
+import { blockedAgent } from './schedule';
 
 interface StoreState {
   agents: StudioAgent[];
@@ -34,6 +35,7 @@ export class StudioStore {
   private subs = new Set<Subscriber>();
   private activityRevision = -1;
   private activityGeneration = 0;
+  private activity: ActivitySnapshot | null = null;
   private refreshSequence = 0;
 
   get(): StoreState { return this.state; }
@@ -78,19 +80,29 @@ export class StudioStore {
     }
     if (snapshot.revision <= this.activityRevision) return;
     this.activityRevision = snapshot.revision;
-    this.state.isRunningPipeline = Boolean(snapshot.jobId);
-    const current = snapshot.jobId ? snapshot.current : null;
+    this.activity = snapshot;
+    this.syncAgents();
+  }
+
+  private syncAgents() {
+    const jobId = this.activity?.jobId || null;
+    this.state.isRunningPipeline = Boolean(jobId);
+    const current = jobId ? this.activity!.current : null;
+    const blocked = jobId ? null : blockedAgent(this.state.schedule);
     for (const agent of this.state.agents) {
       const activity = current?.role === agent.id ? current : null;
-      const status = activity?.status || 'idle';
+      const block = blocked?.role === agent.id ? blocked : null;
+      const status = activity?.status || (block ? 'rejected' : 'idle');
+      const activityStage = activity?.agent || block?.stage || undefined;
       const statusIcon = activity
         ? status === 'rejected' ? '⚠️' : status === 'working' ? AGENT_ICONS[activity.agent] : undefined
-        : undefined;
+        : block ? '⚠️' : undefined;
       const thought = activity
         ? `${activity.videoId ? `#${activity.videoId} · ` : ''}${activity.message}`
-        : snapshot.jobId ? 'Chờ công đoạn tiếp theo.' : 'Không có tác vụ đang chạy.';
-      if (agent.status !== status || agent.statusIcon !== statusIcon || agent.thought !== thought) {
-        this.updateAgent(agent.id, { status, statusIcon, thought,
+        : block ? block.message
+        : jobId ? 'Chờ công đoạn tiếp theo.' : 'Không có tác vụ đang chạy.';
+      if (agent.status !== status || agent.activityStage !== activityStage || agent.statusIcon !== statusIcon || agent.thought !== thought) {
+        this.updateAgent(agent.id, { status, activityStage, statusIcon, thought,
           speech: status === 'working' || status === 'rejected' ? thought : undefined,
           speechTimer: status === 'working' || status === 'rejected' ? Date.now() + 5000 : undefined });
       }
@@ -100,7 +112,7 @@ export class StudioStore {
 
   setAllAgentsIdle(summaryMessage?: string) {
     for (const agent of this.state.agents) {
-      this.updateAgent(agent.id, { status: 'idle', statusIcon: undefined, speech: undefined,
+      this.updateAgent(agent.id, { status: 'idle', activityStage: undefined, statusIcon: undefined, speech: undefined,
         speechTimer: undefined, thought: summaryMessage || 'Không có tác vụ đang chạy.' });
     }
   }
@@ -125,6 +137,7 @@ export class StudioStore {
       this.state.videos = videos;
       events.forEach((event) => this.addEvent(event));
       this.applyActivity(status.activity);
+      this.syncAgents();
       const counts = Object.fromEntries(status.videos.map((row) => [row.status, row.count]));
       const ideas = Object.fromEntries(status.ideas.map((row) => [row.status, row.count]));
       this.state.stats = {

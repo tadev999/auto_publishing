@@ -18,9 +18,9 @@ function schedule(): ScheduleStatus {
   };
 }
 
-const notice = (value: ScheduleStatus, error: string | null = null) =>
+const notice = (value: ScheduleStatus, error: string | null = null, variant: 'status' | 'alert' = 'status', running = false) =>
   renderToStaticMarkup(createElement(ScheduleNotice, {
-    schedule: value, fetchedAt: Date.now(), error, running: false, onOpenAutomation: () => {},
+    schedule: value, fetchedAt: Date.now(), error, running, variant, onOpenAutomation: () => {},
   }));
 
 describe('compact automation controls', () => {
@@ -33,25 +33,46 @@ describe('compact automation controls', () => {
     expect(html).not.toContain('do code kiểm soát');
     expect(html).not.toContain('Demo không gọi AI');
   });
-  it('keeps mode, quota, dry-run and configuration visible with details collapsed by default', () => {
+  it('shows only current status by default and keeps quota and settings inside the disclosure', () => {
     const html = notice(schedule());
-    expect(html).toContain('Tự động vận hành');
+    expect(html.split('</summary>')[0]).toContain('Tự động bật');
+    expect(html.split('</summary>')[0]).not.toContain('video/ngày');
     expect(html).toContain('3 video/ngày');
     expect(html).toContain('DRY RUN');
     expect(html).toContain('Cấu hình tự động vận hành');
-    expect(html).toContain('<summary>Chi tiết hoạt động</summary>');
+    expect(html).toContain('aria-label="Tự động vận hành: Tự động bật"');
+    expect(html).toContain('aria-controls=');
     expect(html).not.toContain('<details open');
     expect(html).not.toContain('scheduler /');
   });
-  it('shows blocked and stale errors outside collapsed details and does not promise a next run', () => {
+  it('shows a separate alert only for blocked or stale states and does not promise a next run', () => {
     const blocked = schedule();
     blocked.automation = { ...blocked.automation!, blocked: true, lastError: 'Cần đối soát kết quả đăng.' };
     const html = notice(blocked);
-    expect(html.split('<details')[0]).toContain('Cần đối soát kết quả đăng.');
+    expect(html.split('</summary>')[0]).toContain('Cần cấu hình');
+    expect(notice(blocked, null, 'alert')).toContain('Cần đối soát kết quả đăng.');
     expect(html).not.toContain('schedule-countdown');
     const stale = notice(schedule(), 'Không kết nối được server');
-    expect(stale.split('<details')[0]).toContain('Không kết nối được server');
+    expect(stale.split('</summary>')[0]).toContain('Mất kết nối');
+    expect(notice(schedule(), 'Không kết nối được server', 'alert')).toContain('Không kết nối được server');
     expect(stale).not.toContain('schedule-countdown');
+    expect(notice(schedule(), null, 'alert')).toBe('');
+  });
+  it('keeps intentionally paused and disabled automation neutral without an alert banner', () => {
+    const paused = { ...schedule(), paused: true };
+    expect(notice(paused).split('</summary>')[0]).toContain('Đã tạm dừng');
+    expect(notice(paused)).toContain('schedule-neutral');
+    expect(notice(paused, null, 'alert')).toBe('');
+    const disabled = { ...schedule(), enabled: false };
+    expect(notice(disabled).split('</summary>')[0]).toContain('Tự động tắt');
+    expect(notice(disabled, null, 'alert')).toBe('');
+  });
+  it('reports the active command without hiding blocking errors during a run', () => {
+    const busy = { ...schedule(), activeCommand: 'produce' };
+    expect(notice(busy, null, 'status', true).split('</summary>')[0]).toContain('Đang sản xuất');
+    busy.lastError = 'Scheduler không thể tiếp tục.';
+    expect(notice(busy, null, 'alert', true)).toContain('Scheduler không thể tiếp tục.');
+    expect(notice(busy, null, 'status', true)).not.toContain('schedule-countdown');
   });
   it('keeps costs and consent visible while moving long rules into a disclosure', () => {
     const value = schedule();
