@@ -3,7 +3,7 @@ name: format-goi-ten
 description: Format "Gọi tên" — video 30–45 giây gọi tên một cảm giác hoặc trạng thái mà người xem đang trải qua nhưng chưa có tên.
 ---
 
-# Format: Gọi tên (30–45s, 75–110 từ)
+# Format: Gọi tên (30–45s, 70–95 từ)
 
 **Mục đích:** người xem nhận ra mình ("đúng là mình"), thấy được thừa nhận. Tối ưu **lượt chia sẻ** ("gửi cho người cần").
 **Hình ảnh:** chữ động, nền trầm ấm.

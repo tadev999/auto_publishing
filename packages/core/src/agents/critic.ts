@@ -194,12 +194,26 @@ export async function runVisionQA(ctx: Ctx, llm: LLM, video: any): Promise<void>
   const minD = lo - s.render.duration_slack[0];
   const maxD = hi + s.render.duration_slack[1];
 
+  const prevCritic = video.critic
+    ? typeof video.critic === 'string'
+      ? JSON.parse(video.critic)
+      : video.critic
+    : {};
+
   if (info.duration < minD || info.duration > maxD) {
     const hint = info.duration > maxD ? 'Rút gọn' : 'Mở rộng';
-    const feedback = [`Video dài ${info.duration.toFixed(1)}s, cần ${lo}–${hi}s. ${hint} script cho đúng độ dài.`];
+    const [tLo, tHi] = targetWords(s.formats[video.format].duration);
+    const feedback = [
+      `Video dài ${info.duration.toFixed(1)}s, cần ${lo}–${hi}s (tối thiểu ${minD}s). ${hint} script đạt khoảng ${tLo}–${tHi} từ để đủ thời lượng.`,
+    ];
     ctx.event(AGENT, `QA trả về: ${feedback.join('; ')}`, { videoId: video.id });
     ctx.db.updateVideo(video.id, {
       status: VideoStatus.PLANNED,
+      critic: {
+        ...prevCritic,
+        passed: false,
+        feedback,
+      },
       critic_rounds: (video.critic_rounds || 0) + 1,
       media: {},
     });
@@ -238,6 +252,11 @@ export async function runVisionQA(ctx: Ctx, llm: LLM, video: any): Promise<void>
     ctx.event(AGENT, `QA không đạt: ${issues.join('; ')}`, { videoId: video.id });
     ctx.db.updateVideo(video.id, {
       status: VideoStatus.PLANNED,
+      critic: {
+        ...prevCritic,
+        passed: false,
+        feedback: issues,
+      },
       critic_rounds: (video.critic_rounds || 0) + 1,
       media: {},
     });

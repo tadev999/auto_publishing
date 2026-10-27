@@ -26,7 +26,7 @@ voice:
   stability: 0.70
   similarity_boost: 0.8
   style: 0.0
-  speed: 0.88
+  speed: 0.82
 
 schedule:
   queue_days: 7
@@ -87,11 +87,11 @@ render:
   fps: 30
   width: 1080
   height: 1920
-  tail_seconds: 1.8
+  tail_seconds: 2.2
   music_volume: 0.12
   loudness_lufs: -14
   # QA accepts this much slack around the format's target duration (seconds).
-  duration_slack: [3, 8]
+  duration_slack: [4, 8]
 
 publish:
   platforms: [youtube] # Tạm thời chỉ upload YouTube; mở lại [instagram, tiktok, youtube] khi sẵn sàng

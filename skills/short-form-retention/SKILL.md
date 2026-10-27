@@ -13,8 +13,8 @@ description: Cấu trúc giữ chân người xem cho video 15–60 giây (Hook 
 ## Quy tắc viết cho giọng đọc + chữ trên màn hình
 - **Một video = một ý.** Nếu cần chữ "và thêm nữa" → tách thành video khác.
 - **Câu 3–12 chữ.** Mỗi câu là một dòng phụ đề.
-- Tốc độ đọc chậm khoảng **2,3–2,6 từ/giây** (tiếng Việt, giọng ấm). Ước tính độ dài:
-  - 15–20s ≈ 35–50 từ · 20–30s ≈ 50–75 từ · 30–45s ≈ 75–110 từ · 40–60s ≈ 95–150 từ.
+- Tốc độ đọc tiếng Việt của Endogenism (chậm rãi, buông chữ, giàu khoảng lặng) khoảng **2,0–2,3 từ/giây**:
+  - 15–20s ≈ 33–44 từ · 20–30s ≈ 44–66 từ · 30–45s ≈ 66–99 từ · 40–60s ≈ 88–132 từ.
 - Đánh dấu **1–2 từ nhấn** mỗi câu (từ mang cảm xúc hoặc từ then chốt) để làm nổi trên màn hình.
 - Không dùng số liệu, link, tên riêng khó đọc.
 
